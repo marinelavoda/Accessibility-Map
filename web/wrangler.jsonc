@@ -28,6 +28,11 @@
 			"migrations_dir": "drizzle"
 		}
 	],
+	"vars": {
+		// Not secret. Locally, .dev.vars overrides it. Secrets (BETTER_AUTH_SECRET, GOOGLE_*)
+		// are set with `npx wrangler secret put <NAME>`, never written here.
+		"BETTER_AUTH_URL": "https://accessibility-map.accessibility-map.workers.dev"
+	},
 	"images": {
 		// Enable image optimization
 		// see https://opennext.js.org/cloudflare/howtos/image

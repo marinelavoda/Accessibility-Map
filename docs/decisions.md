@@ -98,6 +98,11 @@ Add new decisions at the top of the relevant section with a date.
 | Next.js caching | `cacheComponents` off (2026-10-30) | On by default in new Next.js apps, but it hangs requests on Workers with OpenNext |
 | Repo layout | One repo: `web/` (Next.js), `mobile/` (Expo, later), `docs/` (2026-10-30) | Separate repos (harder to keep docs and code in sync) |
 | Workers plan | Paid (~$5/month) likely needed | Free plan's 3 MiB Worker size limit is often too small for Next.js |
+| Password hashing | PBKDF2-SHA256, 100,000 rounds, Web Crypto (2026-10-30) | Better Auth's default scrypt: far over the free plan's ~10 ms CPU per request. Round count is stored in each hash, so it can be raised on the paid plan |
+| Sign-in methods | Email + password and Google now; Apple with the mobile app (2026-10-30) | Apple now (needs a paid Apple developer account; only relevant for iOS) |
+| Web sign-up | Open to anyone; new accounts are `user` and can't open the dashboard (2026-10-30) | Sign-in only (staff accounts would need another way to be created before the app exists) |
+| First admin | `npm run make-admin -- <email>` after signing up; afterwards roles are changed on the dashboard (2026-10-30) | Admin emails in a setting (a second place that decides roles) |
+| Dashboard language | English first, Romanian added once the screens settle (2026-10-30) | Both now (translation setup before the screens are stable) |
 
 ## Open questions
 
@@ -108,7 +113,8 @@ Add new decisions at the top of the relevant section with a date.
 - [ ] Run the 30-place OpenStreetMap coverage test.
 - [ ] ODbL share-alike: check what applies to exports combining OSM and MOTIVAȚIE data.
 - [ ] Baseline review time per PDF submission (for the review-time success metric).
-- [ ] Compare our Better Auth tables with `npx @better-auth/cli generate`.
+- [x] Compare our Better Auth tables with Better Auth 1.7's core schema (checked by hand 2026-10-30: same columns).
+- [ ] Email service (for password reset, email verification and rejection emails) — not chosen yet.
 
 ## PRD sections known to be outdated
 

@@ -1,0 +1,14 @@
+# Copy this file to .dev.vars (which is never committed) and fill it in.
+# On the live site the same names are set with `npx wrangler secret put <NAME>`.
+
+# Random string used to sign session cookies. Make one with: openssl rand -base64 32
+BETTER_AUTH_SECRET=
+
+# Where the dashboard runs locally: http://localhost:3000 for `npm run dev`,
+# http://localhost:8787 for `npm run preview`.
+BETTER_AUTH_URL=http://localhost:3000
+
+# Optional: "Sign in with Google". Leave empty to hide the button.
+# Create them in Google Cloud Console -> APIs & Services -> Credentials -> OAuth client ID.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=

@@ -70,7 +70,8 @@ web/             Next.js app: dashboard pages + /api routes + server code
   src/server/    requireRole, domain services, rules scoring, change logger, notifications
   drizzle/       migrations (generated; never edit an applied one)
   seed/          sample data for local development only
-  test/          check_rules.py (database constraint checks)
+  test/          check_rules.py (database constraints), auth tests, access-check.sh
+  scripts/       make-admin
 scripts/         OSM import, MOTIVAȚIE migration (run with wrangler)
 docs/            decisions, criteria, diagrams
 ```
@@ -88,8 +89,23 @@ Run these from `web/`. Node is installed with fnm: if `node`/`npm` isn't found, 
 - `npm run db:seed:local` — load the sample data into the local D1 database
 - `npm run db:reset:local` — wipe the local database, then migrate and seed again
 - `npm run db:check` — verify database constraints against the migrations (Python 3)
+- `npm test` — unit tests (roles, password hashing)
+- `bash test/access-check.sh` — signs in as each sample role and checks which dashboard pages
+  open (needs `npm run dev` running and the local sample data; local only)
+- `npm run make-admin -- <email> [--remote]` — make an existing account admin (first admin only)
+
+Local sign-in: after `npm run db:reset:local`, admin@example.com, reviewer@example.com and
+ana@example.com have the test password in `seed/dev-accounts.mts` (local database only).
+
+Settings: copy `web/.dev.vars.example` to `web/.dev.vars`. On the live site, secrets are set
+with `npx wrangler secret put BETTER_AUTH_SECRET` (and `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
 
 ## Known gotchas
 
 - Keep `cacheComponents` off in `next.config.ts`: with OpenNext on Workers it makes
   requests hang (opennextjs/opennextjs-cloudflare#1450, #1464).
+- Passwords are hashed by `web/src/server/password.ts` (PBKDF2), not Better Auth's default
+  scrypt, which is too slow for the Workers free plan.
+- `requireRole()` reads the role from the database on every call; a dashboard layout check alone
+  isn't enough because layouts don't re-run on every navigation. Each page calls it too.
+- Better Auth rate-limits sign-in in production builds (counter resets after 10 quiet seconds).

@@ -47,3 +47,6 @@ next-env.d.ts
 .wrangler
 .dev.vars*
 !.dev.vars.example
+
+# test passwords for local sign-in (seed/dev-accounts.mts)
+/seed/dev-accounts.sql

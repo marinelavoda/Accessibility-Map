@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listPublicPlaces, type PublicCriterion, type PublicPlace } from "@/server/public-places";
 
 // Read the database on every request instead of building the page once at deploy time.
@@ -23,9 +24,14 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10 font-sans">
-      <header className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Harta Accesibilității</h1>
-        <p className="mt-1 text-zinc-600">Verified accessibility information for places in Chișinău.</p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Harta Accesibilității</h1>
+          <p className="mt-1 text-zinc-600">Verified accessibility information for places in Chișinău.</p>
+        </div>
+        <Link href="/dashboard" className="text-sm text-zinc-600 underline">
+          Staff sign-in
+        </Link>
       </header>
 
       <p role="note" className="mb-8 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">

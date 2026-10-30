@@ -13,13 +13,16 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:seed:local": "node seed/seed.mts && wrangler d1 execute DB --local --file seed/seed.sql",
+    "db:seed:local": "node seed/seed.mts && node seed/dev-accounts.mts && wrangler d1 execute DB --local --file seed/seed.sql && wrangler d1 execute DB --local --file seed/dev-accounts.sql",
     "db:reset:local": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed:local",
-    "db:check": "python3 test/check_rules.py"
+    "db:check": "python3 test/check_rules.py",
+    "make-admin": "node scripts/make-admin.mts",
+    "test": "node --test test/*.test.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
     "@opennextjs/cloudflare": "^1.20.13",
+    "better-auth": "1.7.9",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
     "drizzle-orm": "^0.45.4",
