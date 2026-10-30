@@ -87,9 +87,10 @@ Run these from `web/`. Node is installed with fnm: if `node`/`npm` isn't found, 
 - `npm run db:generate -- --name <change>` — new migration from schema changes
 - `npm run db:migrate:local` — apply migrations to the local D1 database
 - `npm run db:seed:local` — load the sample data into the local D1 database
-- `npm run db:reset:local` — wipe the local database, then migrate and seed again
+- `npm run db:reset:local` — wipe the local database, then migrate and seed again (stop `npm run dev` first,
+  or restart it afterwards: it keeps the deleted database file open)
 - `npm run db:check` — verify database constraints against the migrations (Python 3)
-- `npm test` — unit tests (roles, password hashing, CSV export, change descriptions)
+- `npm test` — unit tests (roles, passwords, CSV export, change descriptions, scoring rules, approval plan)
 - `bash test/access-check.sh` — signs in as each sample role and checks which dashboard pages
   open (needs `npm run dev` running and the local sample data; local only)
 - `npm run make-admin -- <email> [--remote]` — make an existing account admin (first admin only)
@@ -109,3 +110,6 @@ with `npx wrangler secret put BETTER_AUTH_SECRET` (and `GOOGLE_CLIENT_ID` / `GOO
 - `requireRole()` reads the role from the database on every call; a dashboard layout check alone
   isn't enough because layouts don't re-run on every navigation. Each page calls it too.
 - Better Auth rate-limits sign-in in production builds (counter resets after 10 quiet seconds).
+- Approving and rejecting live in `web/src/server/review.ts`; the decision logic is pure in
+  `approval-plan.ts` and the rules in `src/lib/scoring.ts` (shared with the browser). Drizzle's
+  `db.run(sql)` can't go in a `db.batch`; use a query builder (insert/update) with `sql` values.

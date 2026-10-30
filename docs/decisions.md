@@ -62,7 +62,12 @@ Add new decisions at the top of the relevant section with a date.
   Until then the place stays "Not yet rated".
 - Reviewers can **correct answers** before approving (recorded as `edited_by_reviewer`).
 - **Rejection requires a reason**, which is emailed to the contributor.
-- **No hard lock while reviewing:** the dashboard shows a warning ("opened by Ana 5 min ago").
+- **No hard lock while reviewing:** the dashboard shows a warning ("opened by Ana 5 min ago") for 60 minutes
+  after another reviewer opened a submission. Opening is not written to the change log (it changes no data).
+- **The reviewer picks the published level** (it starts at the suggestion). Corrections are limited to the
+  criteria in the submission; a reviewer can't add criteria the contributor didn't assess (2026-10-30).
+- **Double decisions are impossible:** the decision batch includes a guarded change_log insert that fails
+  (and cancels the whole batch) if someone else decided the submission first (2026-10-30).
 - Rejected submissions are kept forever; **their photos are deleted after 6 months** (Cron job).
 - Rule-based score suggestions are the P0 baseline; P1 ML suggestions are compared against both
   rules and reviewer decisions. Suggestions are never shown to the public.

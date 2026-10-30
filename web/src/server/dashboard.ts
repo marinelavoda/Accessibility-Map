@@ -2,10 +2,10 @@
 // pending submissions, hidden places and people's emails, so they must only ever be
 // called from a dashboard page AFTER requireRole() has let the person in.
 
-import { asc, count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { getDb } from "@/db";
-import { assessments, categories, places, submissions, users } from "@/db/schema";
+import { assessments, categories, places, scoreSuggestions, submissions, users } from "@/db/schema";
 
 export async function getOverviewCounts() {
   const db = getDb();
@@ -38,14 +38,36 @@ export async function listReviewQueue() {
       submittedBy: submitter.name,
       openedBy: openedBy.name,
       openedSince: submissions.reviewingSince,
+      suggestedLevel: scoreSuggestions.level,
     })
     .from(submissions)
     .innerJoin(assessments, eq(assessments.id, submissions.assessmentId))
     .innerJoin(places, eq(places.id, assessments.placeId))
     .innerJoin(submitter, eq(submitter.id, submissions.submittedBy))
     .leftJoin(openedBy, eq(openedBy.id, submissions.reviewingBy))
+    .leftJoin(scoreSuggestions, and(eq(scoreSuggestions.submissionId, submissions.id), eq(scoreSuggestions.strategy, "rules")))
     .where(eq(submissions.status, "pending"))
     .orderBy(asc(submissions.submittedAt));
+}
+
+/** The most recently approved or rejected submissions. */
+export async function listRecentDecisions(limit = 10) {
+  const decidedBy = alias(users, "decided_by");
+  return getDb()
+    .select({
+      id: submissions.id,
+      status: submissions.status,
+      reviewedAt: submissions.reviewedAt,
+      placeName: places.name,
+      decidedBy: decidedBy.name,
+    })
+    .from(submissions)
+    .innerJoin(assessments, eq(assessments.id, submissions.assessmentId))
+    .innerJoin(places, eq(places.id, assessments.placeId))
+    .leftJoin(decidedBy, eq(decidedBy.id, submissions.reviewedBy))
+    .where(ne(submissions.status, "pending"))
+    .orderBy(desc(submissions.reviewedAt))
+    .limit(limit);
 }
 
 /** Every place, including hidden ones. Longest since verification first; never-rated last. */
