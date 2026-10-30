@@ -1,0 +1,60 @@
+@startuml 08b_seq_submit
+' Sequence diagram 2 — Submit an assessment or update for an existing place (v0.3, 2026-10-30)
+!include _seq.iuml
+title 2 · Submit an assessment for an existing place
+
+actor "Registered user" as U
+participant "Mobile app" as App
+box "Backend · Next.js on Cloudflare" #FAFAFA
+  participant "API route\n+ requireRole()" as API
+  participant "Rules scoring" as Score
+  database "D1" as DB
+end box
+participant "R2\n(photos)" as R2
+participant "Email\nprovider" as Mail
+
+note over U, App : The user is signed in and has opened an existing place.
+
+== Choose what to report ==
+U -> App : tap "Assess this place"\n(or "Update" if already rated)
+App -> API : GET /api/criteria
+API -> DB : criteria + questions (ro/en)
+DB --> API : rows
+API --> App : questionnaire
+U -> App : pick criteria, answer questions
+
+== Upload photos (one per criterion) ==
+loop for each criterion that exists at the place
+  U -> App : take or choose photo
+  App -> API : POST /api/photos/upload-url
+  API -> API : requireRole(user)
+  API --> App : signed upload link\n(private "pending" area)
+  App -> R2 : upload photo
+  R2 --> App : stored
+end
+note right of App : No photo needed for\n"Not needed", "No public toilet" or "N/A".
+
+== Submit ==
+U -> App : tap "Submit"
+App -> API : POST /api/submissions\nplace id, chosen criteria,\nanswers, photo keys
+API -> API : requireRole(user)\nvalidate answers + photos
+
+alt something is missing or invalid
+  API --> App : 400: what to fix
+  App --> U : highlight the problem\n(draft kept on the phone)
+else valid
+  API -> Score : answers
+  Score --> API : suggested level\n+ explanation + reviewer notes
+  API -> DB : one batch: PROPOSED assessment,\nanswers, photo records,\nsubmission (PENDING), suggestion,\nchange log entry
+  DB --> API : ok
+  API --> App : submission id, PENDING
+  App --> U : "Thanks! A reviewer\nwill check it."
+  API ->> Mail : after the response:\n"New submission" to reviewers
+end
+
+note over API, DB
+  Nothing the user sent is public yet.
+  The place keeps showing its current
+  (verified) information until approval.
+end note
+@enduml

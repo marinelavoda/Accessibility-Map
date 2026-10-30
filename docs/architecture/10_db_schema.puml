@@ -1,0 +1,250 @@
+@startuml 10_db_schema
+' Harta Accesibilității — database schema v0.3 (2026-10-30)
+' SQLite on Cloudflare D1, written with Drizzle ORM.
+' PK = primary key · FK = foreign key (points to another table) · UQ = unique
+' * = required (NOT NULL). Types are what SQLite stores; Drizzle turns them into
+' booleans, dates and JSON in TypeScript.
+!theme plain
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 60
+skinparam ArrowColor #444444
+skinparam entity {
+  BorderColor #333333
+  BackgroundColor #FFFFFF
+  BackgroundColor<<place>> #EAF4EA
+  BackgroundColor<<form>> #FFF6E5
+  BackgroundColor<<found>> #EEF3FA
+  BackgroundColor<<review>> #F7ECF5
+  BackgroundColor<<people>> #F3F3F3
+  BackgroundColor<<auth>> #E6EEF8
+  BorderColor<<auth>> #6F86A6
+  BackgroundColor<<P2>> #FAFAFA
+  BorderColor<<P2>> #B0B0B0
+  FontColor<<P2>> #6A6A6A
+}
+skinparam note {
+  BackgroundColor #FFF8DC
+  BorderColor #C9B458
+  FontSize 10
+}
+hide circle
+hide stereotype
+title Database schema (v0.3) — SQLite / D1 · Drizzle ORM
+
+' ================= PLACES =================
+entity "categories" as categories <<place>> {
+  * id : text <<PK>>
+  --
+  * code : text <<UQ>>  "health"
+  * name : json {ro, en}
+  * icon : text
+  * osm_tags : json list
+  * display_order : integer
+  * created_at : timestamp
+}
+
+entity "places" as places <<place>> {
+  * id : text <<PK>>
+  --
+  * source : text  osm | admin
+  osm_type : text  node | way | relation
+  osm_id : integer
+  osm_tag : text  "amenity=cafe"
+  osm_synced_at : timestamp
+  * name : text
+  other_names : json list
+  * category_id : text <<FK>>
+  * lat : real
+  * lng : real
+  address : text
+  * status : text  active | hidden | gone_from_osm
+  .. copied from current assessment ..
+  published_level : text  empty = not yet rated
+  has_designated_parking : boolean
+  last_verified_at : timestamp
+  ..
+  * created_at, updated_at : timestamp
+  ..
+  UQ (osm_type, osm_id)
+  index (lat, lng)
+}
+
+' ================= QUESTIONNAIRE =================
+entity "criteria" as criteria <<form>> {
+  * id : text <<PK>>
+  --
+  * code : text <<UQ>>  "entrance_doors"
+  * name : json {ro, en}
+  * group : text  entry | inside | parking
+  * is_mandatory : boolean
+  * display_order : integer
+  * is_active : boolean
+  * created_at : timestamp
+}
+
+entity "questions" as questions <<form>> {
+  * id : text <<PK>>
+  --
+  * criterion_id : text <<FK>>
+  * code : text
+  * prompt : json {ro, en}
+  * type : text  choice | checkboxes | text
+  options : json  [{code, label{ro,en}}]
+  * is_main : boolean
+  * is_required : boolean
+  * display_order : integer
+  * is_active : boolean  false = retired
+  * created_at : timestamp
+  ..
+  UQ (criterion_id, code)
+}
+
+' ================= WHAT WAS FOUND =================
+entity "assessments" as assessments <<found>> {
+  * id : text <<PK>>
+  --
+  * place_id : text <<FK>>
+  * origin : text  motivatie_import |\n  user_submission | admin_edit
+  based_on_id : text <<FK>>  previous current
+  overall_level : text
+  * is_current : boolean
+  verified_at : timestamp
+  * created_at : timestamp
+  ..
+  only one current per place
+}
+
+entity "criterion_results" as results <<found>> {
+  * id : text <<PK>>
+  --
+  * assessment_id : text <<FK>>
+  * criterion_id : text <<FK>>
+  * level : text  accessible | partial |\n  inaccessible | not_applicable
+  * created_at : timestamp
+  ..
+  UQ (assessment_id, criterion_id)
+}
+
+entity "answers" as answers <<found>> {
+  * id : text <<PK>>
+  --
+  * criterion_result_id : text <<FK>>
+  * question_id : text <<FK>>
+  * value : json  "yes" | ["curb","stairs"] | "80 cm"
+  ..
+  UQ (criterion_result_id, question_id)
+}
+
+entity "photos" as photos <<found>> {
+  * id : text <<PK>>
+  --
+  * criterion_result_id : text <<FK>>
+  * r2_key : text  file in the R2 bucket
+  * position : integer  1 to 3
+  uploaded_by : text <<FK>>
+  * created_at : timestamp
+  ..
+  UQ (criterion_result_id, position)
+}
+
+' ================= REVIEW =================
+entity "submissions" as submissions <<review>> {
+  * id : text <<PK>>
+  --
+  * assessment_id : text <<FK, UQ>>
+  * kind : text  first_assessment | update
+  * status : text  pending | approved | rejected
+  * submitted_by : text <<FK>>
+  * submitted_at : timestamp
+  reviewing_by : text <<FK>>  "opened by…" warning
+  reviewing_since : timestamp
+  reviewed_by : text <<FK>>
+  reviewed_at : timestamp
+  rejection_reason : text
+  * edited_by_reviewer : boolean
+  photos_deleted_at : timestamp  cleanup job
+  ..
+  index (status, submitted_at)
+}
+
+entity "score_suggestions" as suggestions <<review>> {
+  * id : text <<PK>>
+  --
+  * submission_id : text <<FK>>
+  * strategy : text  rules | ml
+  model_version : text
+  * level : text
+  * explanation : json  reasons + reviewer notes
+  * created_at : timestamp
+}
+
+' ================= PEOPLE AND TRACKING =================
+entity "users" as users <<people>> {
+  * id : text <<PK>>
+  --
+  * name : text
+  * email : text <<UQ>>
+  * email_verified : boolean
+  image : text
+  .. added by us ..
+  * role : text  user | reviewer | admin
+  deleted_at : timestamp  anonymized
+  ..
+  * created_at, updated_at : timestamp
+}
+
+entity "sessions · accounts ·\nverifications" as auth <<auth>> {
+  created by Better Auth
+}
+
+entity "change_log" as changelog <<people>> {
+  * id : integer <<PK, auto>>
+  --
+  * table_name : text
+  * record_id : text
+  * action : text  insert | update | delete
+  old_row : json
+  new_row : json
+  changed_by : text <<FK>>  empty = system
+  * changed_at : timestamp
+}
+
+entity "search_events (P2)" as search <<P2>> {
+  * id : integer <<PK, auto>>
+  --
+  * query : text
+  * result_count : integer
+  opened_place_id : text <<FK>>
+  * created_at : timestamp
+  .. no user stored ..
+}
+
+' ================= RELATIONSHIPS =================
+categories ||--o{ places
+places ||--o{ assessments
+assessments |o--o{ assessments : based on
+criteria ||--|{ questions
+assessments ||--|{ results
+criteria ||--o{ results
+results ||--o{ answers
+questions ||--o{ answers
+results ||--o{ photos
+submissions |o--|| assessments
+submissions ||--o{ suggestions
+users ||--o{ submissions : submits
+users |o--o{ submissions : reviews
+users |o--o{ photos
+users ||--o{ auth
+users |o--o{ changelog
+places |o--o{ search
+
+note bottom of places
+  <b>Search index</b> (separate, hand-written migration):
+  FTS5 table over name + other_names,
+  ignores diacritics ("Chisinau" = "Chișinău").
+end note
+@enduml

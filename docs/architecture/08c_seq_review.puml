@@ -1,0 +1,77 @@
+@startuml 08c_seq_review
+' Sequence diagram 3 — Review and publish a submission (v0.3, 2026-10-30)
+!include _seq.iuml
+title 3 · Review and publish a submission
+
+actor "Reviewer\n(MOTIVAȚIE)" as R
+participant "Review dashboard\n(Next.js pages)" as Dash
+box "Backend · Next.js on Cloudflare" #FAFAFA
+  participant "Domain services\n+ requireRole()" as Svc
+  participant "Rules scoring" as Score
+  database "D1" as DB
+end box
+participant "R2\n(photos)" as R2
+participant "Email\nprovider" as Mail
+
+== Open the queue ==
+R -> Dash : open review queue
+Dash -> Svc : list pending submissions
+Svc -> Svc : requireRole(reviewer)
+Svc -> DB : PENDING, oldest first
+DB --> Svc : rows
+Svc --> Dash : queue
+Dash --> R : list with suggested levels
+
+== Open one submission ==
+R -> Dash : open submission
+Dash -> Svc : claim(id)
+Svc -> DB : lock to this reviewer\n(if nobody else has it)
+alt already claimed by someone else
+  DB --> Svc : locked
+  Svc --> Dash : "being reviewed by …"
+else claimed
+  Svc -> DB : answers, suggestion + notes,\ncurrent assessment (if update)
+  DB --> Svc : rows
+  Svc --> Dash : submission + signed photo links
+  Dash -> R2 : load photos
+  R2 --> Dash : photos
+  Dash --> R : answers and photos side by side,\nsuggestion, current vs proposed
+end
+
+opt reviewer corrects an answer
+  R -> Dash : e.g. door width 8 → 80 cm
+  Dash -> Svc : preview(corrections)
+  Svc -> Score : recompute
+  Score --> Svc : new suggested level
+  Svc --> Dash : updated suggestion
+end
+
+== Decide ==
+alt Approve
+  R -> Dash : approve
+  Dash -> Svc : approve(id, corrections)
+  Svc -> Svc : merge with unchanged criteria\nof the current assessment,\ncheck publishing rule
+  Svc -> DB : one batch:\nold assessment → history,\nnew one → CURRENT,\nplace level + last verified = now,\nsubmission APPROVED, change log
+  DB --> Svc : ok
+  Svc --> Dash : published / saved
+  Dash --> R : done, next in queue
+else Reject (reason required)
+  R -> Dash : reject + reason
+  Dash -> Svc : reject(id, reason)
+  Svc -> DB : one batch: submission REJECTED\n+ reason, change log\n(verified data untouched)
+  DB --> Svc : ok
+  Svc --> Dash : rejected
+end
+
+Svc ->> Mail : after the response:\ndecision email to the contributor
+
+note over Svc, DB
+  <b>Publishing rule</b>
+  Inaccessible: shown once the entry path is known.
+  Accessible / partially accessible: shown once all
+  6 mandatory criteria are known. Until then the
+  approved answers are saved, but the place stays
+  "Not yet rated" in the app.
+end note
+note over R2 : Photos of rejected submissions\nare deleted after 6 months\n(Cleanup job).
+@enduml

@@ -1,0 +1,127 @@
+@startuml 06_use_case
+' Use case diagram — v0.4, 2026-10-30
+' Changes from v0.3: places come from OpenStreetMap; users only assess existing places
+' (no new places from users); admins can still create a missing place.
+' External systems (email, map tiles, Nominatim) drawn as boxes, not people.
+' Changes from v0.2: Reviewer and Admin roles (P0), role inheritance,
+' per-criterion updates, no Russian, no temporary barriers,
+' account deletion, own submissions, reviewer notifications.
+!theme plain
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam ArrowColor #444444
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  BackgroundColor<<P1>> #ECECEC
+  BorderColor<<P1>> #8C8C8C
+  BackgroundColor<<P2>> #F6F6F6
+  BorderColor<<P2>> #B5B5B5
+  FontColor<<P2>> #777777
+}
+skinparam rectangle {
+  BorderColor #777777
+  BackgroundColor<<system>> #EEF3FA
+  BorderColor<<system>> #6F86A6
+}
+title Use cases (v0.4) — white = P0, light grey = P2
+
+actor "Visitor\n(no account)" as Visitor
+actor "Registered user" as User
+actor "Reviewer\n(MOTIVAȚIE)" as Reviewer
+actor "Admin\n(MOTIVAȚIE)" as Admin
+
+rectangle "Map tiles\n(OpenStreetMap)" <<system>> as Tiles
+rectangle "Nominatim\n(address lookup)" <<system>> as Nominatim
+rectangle "Email service" <<system>> as Email
+
+' Each role can do everything the role it points to can do, plus more
+User -|> Visitor
+Reviewer -|> User
+Admin -|> Reviewer
+
+rectangle "Mobile app" {
+  usecase "Browse map" as UC_Map
+  usecase "Search places" as UC_Search
+  usecase "Filter by type / level" as UC_Filter
+  usecase "View place details" as UC_View
+  usecase "Open directions" as UC_Dir
+  usecase "Share place" as UC_Share
+  usecase "Switch language\n(Romanian / English)" as UC_Lang
+  usecase "Sign in / sign up" as UC_Auth
+
+  usecase "Assess an existing place\n(some or all criteria)" as UC_Assess
+  usecase "Submit update\n(changed criteria only)" as UC_Update
+  usecase "Fill criteria form" as UC_Form
+  usecase "Attach photo\nper criterion" as UC_Photo
+  usecase "See own submissions\nand their status" as UC_Mine
+  usecase "Get decision by email" as UC_Notif
+  usecase "Delete account" as UC_Delete
+}
+
+rectangle "Review dashboard (web)" {
+  usecase "Get notified of\nnew submissions" as UC_NewSub
+  usecase "Review submission" as UC_Rev
+  usecase "See suggested level\nand reviewer notes" as UC_Score
+  usecase "Correct answers" as UC_Correct
+  usecase "Approve / reject" as UC_Decide
+
+  usecase "Add a missing place" as UC_Add
+  usecase "Edit place" as UC_Edit
+  usecase "Hide / delete place" as UC_Hide
+  usecase "List places by\nlast verified" as UC_Stale
+  usecase "View change history" as UC_Hist
+  usecase "Export data" as UC_Export
+  usecase "Assign roles" as UC_Roles
+  usecase "View most-searched places\n(to prioritize missing data)" as UC_Demand <<P2>>
+}
+
+' Visitor
+Visitor --> UC_Map
+Visitor --> UC_Search
+Visitor --> UC_Filter
+Visitor --> UC_View
+Visitor --> UC_Dir
+Visitor --> UC_Share
+Visitor --> UC_Lang
+Visitor --> UC_Auth
+
+' Registered user
+User --> UC_Assess
+User --> UC_Update
+User --> UC_Mine
+User --> UC_Delete
+
+UC_Assess ..> UC_Form : <<include>>
+UC_Update ..> UC_Form : <<include>>
+UC_Form ..> UC_Photo : <<include>>
+UC_Assess ..> UC_Notif : <<include>>
+UC_Update ..> UC_Notif : <<include>>
+
+' Reviewer
+Reviewer --> UC_NewSub
+Reviewer --> UC_Rev
+UC_Rev ..> UC_Score : <<include>>
+UC_Rev ..> UC_Decide : <<include>>
+UC_Correct ..> UC_Rev : <<extend>>
+
+' Admin
+Admin --> UC_Add
+Admin --> UC_Edit
+Admin --> UC_Hide
+Admin --> UC_Stale
+Admin --> UC_Hist
+Admin --> UC_Export
+Admin --> UC_Roles
+Admin --> UC_Demand
+
+' External systems
+UC_Map --> Tiles
+UC_Add --> Nominatim
+UC_Notif --> Email
+UC_NewSub --> Email
+@enduml

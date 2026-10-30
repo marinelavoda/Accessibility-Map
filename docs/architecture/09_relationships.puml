@@ -1,0 +1,73 @@
+@startuml 09_relationships
+' Harta Accesibilității — entity relationships (no columns yet), v0.1, 2026-10-30
+!theme plain
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam ArrowColor #333333
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  BackgroundColor<<P2>> #F3F3F3
+  BorderColor<<P2>> #B0B0B0
+  FontColor<<P2>> #6A6A6A
+  BackgroundColor<<auth>> #EEF3FA
+  BorderColor<<auth>> #6F86A6
+}
+skinparam package {
+  BorderColor #9A9A9A
+  FontStyle bold
+}
+hide circle
+hide empty members
+hide stereotype
+title Entities and relationships (v0.1)
+
+package "Questionnaire (template)" {
+  entity "Criterion" as Criterion
+  entity "Question" as Question
+}
+
+package "Places" {
+  entity "Category" as Category
+  entity "Place" as Place
+}
+
+package "What was found at a place" {
+  entity "Assessment" as Assessment
+  entity "Criterion result" as Result
+  entity "Answer" as Answer
+  entity "Photo" as Photo
+}
+
+package "Review" {
+  entity "Submission" as Submission
+  entity "Score suggestion" as Suggestion
+}
+
+package "People and tracking" {
+  entity "User" as User
+  entity "Better Auth tables\n(sessions, logins)" as Auth <<auth>>
+  entity "Change log entry" as Log
+  entity "Search event" as Search <<P2>>
+}
+
+Criterion ||--|{ Question : has
+Category ||--o{ Place : groups
+Place ||--o{ Assessment : "history of"
+Assessment ||--o{ Result : "one per criterion\nassessed"
+Criterion ||--o{ Result : "is judged in"
+Result ||--o{ Answer : contains
+Question ||--o{ Answer : "is answered in"
+Result ||--o{ Photo : "0 to 3"
+Submission |o--|| Assessment : proposes
+Submission ||--o{ Suggestion : gets
+User ||--o{ Submission : submits
+User |o--o{ Submission : reviews
+User ||--o{ Auth : "signs in with"
+User |o--o{ Log : "made change"
+Place |o--o{ Search : "opened (optional)"
+@enduml

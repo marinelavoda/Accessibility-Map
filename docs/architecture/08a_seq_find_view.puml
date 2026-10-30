@@ -1,0 +1,56 @@
+@startuml 08a_seq_find_view
+' Sequence diagram 1 — Find a place and view its accessibility (v0.3, 2026-10-30)
+' Stack: Expo app with MapLibre · Next.js backend (route handlers) · D1 · R2 · OpenStreetMap tiles
+!include _seq.iuml
+title 1 · Find a place and view its accessibility
+
+actor "Map user\n(no account needed)" as U
+participant "Mobile app" as App
+box "Backend · Next.js on Cloudflare" #FAFAFA
+  participant "API route\n+ requireRole()" as API
+  database "D1" as DB
+end box
+participant "R2\n(photos)" as R2
+participant "Map tile\nprovider" as Tiles
+
+== Open the map ==
+U -> App : open app
+App -> Tiles : get map tiles
+Tiles --> App : tiles (OpenStreetMap)
+App -> API : GET /api/places
+note right of API : public route:\nno sign-in needed
+API -> DB : all visible places:\nid, coordinates, category,\ncurrent level (or unrated),\nno-parking flag
+DB --> API : rows
+API --> App : place list
+App -> App : cache list, draw markers\n+ clusters (unrated hidden\nat city zoom)
+
+== Search ==
+U -> App : type "spital"
+App -> API : GET /api/search?q=spital
+API -> DB : full-text search (FTS5):\nprefix match, ignores diacritics
+DB --> API : matching places
+API --> App : results (rated + unrated)
+App --> U : result list
+
+== View a place ==
+U -> App : tap a place
+App -> API : GET /api/places/{id}
+API -> DB : place + CURRENT assessment:\nlevel, answer per criterion,\nlast verified, photo keys
+DB --> API : rows
+API -> API : make short-lived\nsigned photo links
+API --> App : place details
+App -> R2 : load photos (signed links)
+R2 --> App : photos
+App --> U : level, each criterion,\nphotos, last verified
+
+note over App, API
+  Only approved data is ever returned.
+  A place with no published rating shows
+  "Not yet rated" with an "Assess this place" button.
+end note
+
+opt user wants to go there
+  U -> App : tap "Directions"
+  App -> App : open phone's maps app\nwith the coordinates
+end
+@enduml

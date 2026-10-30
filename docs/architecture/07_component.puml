@@ -1,0 +1,128 @@
+@startuml 07_component
+' Harta Accesibilității — component diagram v0.5 (2026-10-30)
+' v0.5: OpenStreetMap instead of Google (MapLibre + OSM tiles, Nominatim); users only assess
+' existing places imported from OpenStreetMap; admins can add a missing place; API = Next.js route handlers.
+' One simplified view of the whole system: mobile app, review dashboard, backend.
+' White = P0, grey = P1, light grey = P2, blue = external.
+' The review dashboard and the backend live in one Next.js project, deployed together
+' to Cloudflare Workers with OpenNext. They are drawn separately because they are
+' different parts of the system: the dashboard is the UI, the backend owns the data.
+!include _common.iuml
+skinparam nodesep 40
+skinparam ranksep 60
+title Harta Accesibilității — component diagram (v0.5)
+
+package "Mobile app · React Native + Expo\nfor everyone · Romanian / English" as MOB {
+  component "Map & search\n<size:10>MapLibre</size>" as M_Map
+  component "Place details" as M_Place
+  component "Assessment form\n<size:10>existing place only ·\n<size:10>photo per criterion</size>" as M_Form
+  component "Account &\nmy submissions" as M_Acc
+  component "API client\n<size:10>+ local cache</size>" as M_Client
+}
+
+package "Review dashboard · Next.js pages\nfor MOTIVAȚIE reviewers and admins" as DASH {
+  component "Review queue\n& decisions\n<size:10>reviewers + admins</size>" as D_Review
+  component "Place manager\n<size:10>admins: add missing ·\n<size:10>edit · hide · delete</size>" as D_Places
+  component "History, export\n& roles\n<size:10>admins</size>" as D_Ops
+  component "Most-searched\nplaces" as D_Demand <<P2>>
+}
+
+package "Backend · Next.js server code\n(same deployment as the dashboard: Cloudflare Workers via OpenNext)" as BACK {
+  component "API routes · /api/…\n<size:10>Next.js route handlers,\n<size:10>for the mobile app</size>" as B_Api
+  component "Auth\n<size:10>Better Auth</size>" as B_Auth
+  component "Authorization\n<size:10>requireRole() — runs first\n<size:10>for every request</size>" as B_Authz
+  component "Domain services\n<size:10>submissions · review & publication ·\n<size:10>administration</size>" as B_Svc
+  component "Rules scoring\n<size:10>suggested level + notes</size>" as B_Score
+  component "Change logger" as B_Log
+  component "Notifications" as B_Notify
+  component "Cleanup job\n<size:10>Cron Trigger</size>" as B_Cron
+  component "ML scoring +\nphoto check" as B_ML <<P1>>
+}
+
+package "Cloudflare storage" as STORE {
+  database "D1 database\n<size:10>SQLite · Drizzle ORM</size>\n<size:10>users · places (OSM copy) · assessments ·\n<size:10>submissions · questionnaire ·\n<size:10>change log · search index</size>" as DB
+  storage "R2 bucket\n<size:10>photos (private)</size>" as R2
+}
+
+package "External services" as EXT {
+  component "Map tile provider\n<size:10>OpenStreetMap tiles</size>" as X_Tiles <<external>>
+  component "Nominatim\n<size:10>address lookup</size>" as X_Nom <<external>>
+  component "OpenStreetMap data\n<size:10>Overpass API</size>" as X_OSM <<external>>
+  component "Analytics (EU)" as X_Analytics <<external>>
+  component "Email provider" as X_Mail <<external>>
+  component "Multimodal\nmodel API" as X_LLM <<P1>>
+}
+
+package "Offline scripts · run with wrangler" as OFF {
+  component "MOTIVAȚIE\nmigration" as S_Migr <<script>>
+  component "OSM import\n<size:10>run again to refresh</size>" as S_OSM <<script>>
+  component "ML training" as S_Train <<P1>>
+}
+
+' ---------- mobile app ----------
+M_Map --> M_Client
+M_Place --> M_Client
+M_Form --> M_Client
+M_Acc --> M_Client
+M_Client --> B_Api : HTTPS (JSON)
+M_Client --> R2 : upload / view photos\n(signed URLs)
+
+' ---------- review dashboard ----------
+D_Review --> B_Authz : server-side calls\n(same app)
+D_Places --> B_Authz
+D_Ops --> B_Authz
+D_Demand --> B_Authz
+D_Review --> R2 : view photos\n(signed URLs)
+
+' ---------- inside the backend ----------
+B_Api --> B_Authz
+B_Authz --> B_Auth : who is calling?
+B_Authz --> B_Svc : allowed requests only
+B_Svc --> B_Score : on submit / correction
+B_Svc --> B_Log : every change
+B_Svc ..> B_Notify : new submission /\ndecision
+B_Svc ..> B_ML #8C8C8C : on submit (P1)
+
+' ---------- storage ----------
+B_Auth --> DB
+B_Svc --> DB : reads / writes
+B_Log --> DB
+B_Score --> DB
+B_Svc --> R2 : signs URLs
+B_Cron --> R2 : deletes photos of\nrejected submissions
+
+' ---------- external ----------
+M_Map --> X_Tiles : map tiles
+D_Places --> X_Nom : address for a\nmissing place
+MOB ..> X_Analytics : anonymous events
+B_Notify --> X_Mail
+B_ML --> X_LLM #8C8C8C
+
+' ---------- offline ----------
+S_Migr ..> DB #B08A3E : places +\nassessments
+S_Migr ..> R2 #B08A3E : photos
+S_OSM ..> X_OSM #B08A3E : downloads places
+S_OSM ..> DB #B08A3E : places
+S_Train ..> B_ML #8C8C8C : model
+
+note right of B_Svc
+  <b>Key rules</b>
+  • Only the backend can reach D1 and R2.
+  • Every request, from the app or the dashboard,
+    passes requireRole() before touching data.
+  • Public routes return only approved, public data.
+  • Users assess existing places only;
+    only admins add a missing place.
+  • Only an approval publishes data;
+    scoring only suggests.
+end note
+
+legend bottom right
+  |= Connector |= Meaning |
+  | ──▶ | call or read/write |
+  | ‐ ‐ ▶ | sent in the background |
+  | brown ‐ ‐ ▶ | offline script |
+  | white / grey / light grey | P0 / P1 / P2 |
+  | blue | external service |
+endlegend
+@enduml

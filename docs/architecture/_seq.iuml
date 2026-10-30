@@ -1,0 +1,30 @@
+!theme plain
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam ArrowColor #333333
+skinparam SequenceMessageAlignment center
+skinparam ParticipantPadding 18
+skinparam BoxPadding 12
+skinparam sequence {
+  LifeLineBorderColor #9A9A9A
+  ParticipantBorderColor #333333
+  ParticipantBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  GroupBorderColor #8A8A8A
+  GroupBackgroundColor #F3F3F3
+  DividerBackgroundColor #EEF3FA
+  DividerBorderColor #6F86A6
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+skinparam note {
+  BackgroundColor #FFF8DC
+  BorderColor #C9B458
+  FontSize 11
+}
+autonumber "<b>0."
+hide footbox
