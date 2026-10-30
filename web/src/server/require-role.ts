@@ -38,3 +38,16 @@ export async function requireRole(required: Role): Promise<CurrentUser> {
   if (!hasRole(user.role, required)) redirect("/no-access");
   return user;
 }
+
+/**
+ * For API route handlers, which answer with a status code instead of a page:
+ *   const access = await requireRoleForApi("admin");
+ *   if (access instanceof Response) return access;   // 401 or 403
+ *   const user = access;
+ */
+export async function requireRoleForApi(required: Role): Promise<CurrentUser | Response> {
+  const user = await getCurrentUser();
+  if (!user) return Response.json({ error: "Sign in first." }, { status: 401 });
+  if (!hasRole(user.role, required)) return Response.json({ error: "You don't have access." }, { status: 403 });
+  return user;
+}

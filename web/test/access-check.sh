@@ -33,9 +33,17 @@ visit() { # visit <cookie-jar or ""> <page>
   if [[ "$result" == 200* ]]; then echo 200; else echo "${result#* }" | sed "s|^$BASE||"; fi
 }
 
+# The plain HTTP status of <url> (for API routes, which answer 401/403 instead of redirecting).
+status() { # status <cookie-jar or ""> <url>
+  local jar=()
+  [[ -n "$1" ]] && jar=(-b "$JAR_DIR/$1")
+  curl -s -o /dev/null -w "%{http_code}" "${jar[@]}" "$BASE$2"
+}
+
 echo "Visitor (not signed in)"
 check "dashboard -> sign-in page" "/sign-in" "$(visit "" /dashboard)"
 check "users page -> sign-in page" "/sign-in" "$(visit "" /dashboard/users)"
+check "export download is refused" "401" "$(status "" /api/export/places)"
 check "public map opens" "200" "$(visit "" /)"
 
 echo "Wrong password"
@@ -52,10 +60,17 @@ check "dashboard opens" "200" "$(visit reviewer@example.com /dashboard)"
 check "review queue opens" "200" "$(visit reviewer@example.com /dashboard/review)"
 check "places list opens" "200" "$(visit reviewer@example.com /dashboard/places)"
 check "users page -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/users)"
+check "change history -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/history)"
+check "export page -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/export)"
+check "export download is refused" "403" "$(status reviewer@example.com /api/export/places)"
 
 echo "Admin (admin@example.com)"
 check "signs in" "200" "$(sign_in admin@example.com "$PASSWORD")"
 check "users page opens" "200" "$(visit admin@example.com /dashboard/users)"
+check "change history opens" "200" "$(visit admin@example.com /dashboard/history)"
+check "export page opens" "200" "$(visit admin@example.com /dashboard/export)"
+check "export download works" "200" "$(status admin@example.com /api/export/places)"
+check "unknown export is 404" "404" "$(status admin@example.com /api/export/passwords)"
 
 echo "New sign-up that asks to be admin"
 EMAIL="newcomer-$RANDOM@example.com"

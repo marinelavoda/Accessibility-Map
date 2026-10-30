@@ -1,10 +1,10 @@
 "use client";
 
 // The sidebar links. A client component only so it can highlight the current page.
-// Hiding "Users" from reviewers is just for tidiness: the Users page itself calls
+// Hiding admin pages from reviewers is just for tidiness: each admin page itself calls
 // requireRole("admin"), which is what actually keeps reviewers out.
 
-import { ClipboardList, LayoutDashboard, MapPin, Users } from "lucide-react";
+import { ClipboardList, Download, History, LayoutDashboard, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -20,6 +20,8 @@ const LINKS = [
   { href: "/dashboard/review", label: "Review queue", icon: ClipboardList, adminOnly: false },
   { href: "/dashboard/places", label: "Places", icon: MapPin, adminOnly: false },
   { href: "/dashboard/users", label: "Users & roles", icon: Users, adminOnly: true },
+  { href: "/dashboard/history", label: "Change history", icon: History, adminOnly: true },
+  { href: "/dashboard/export", label: "Export data", icon: Download, adminOnly: true },
 ];
 
 export function DashboardNav({ isAdmin }: { isAdmin: boolean }) {
