@@ -167,3 +167,87 @@ function valueFromCorrection(question: QuestionInfo, correction: Correction): st
 function sameValue(a: string | string[] | undefined, b: string | string[] | undefined): boolean {
   return JSON.stringify(Array.isArray(a) ? [...a].sort() : a) === JSON.stringify(Array.isArray(b) ? [...b].sort() : b);
 }
+
+// ---------------------------------------------------------------------------
+// Admin edits (an admin corrects a place's published assessment directly)
+// ---------------------------------------------------------------------------
+
+export type AdminEditInput = {
+  current: StoredResult[] | null; // the place's current assessment, if it has one
+  criterionIds: Record<string, string>; // criterion code -> criterion id
+  questionsByCriterion: Record<string, QuestionInfo[]>;
+  mandatory: string[];
+  /** The admin's answers. A criterion left out keeps what's published (or stays "not assessed"). */
+  answers: Record<string, Correction>;
+  level: Level;
+  newId?: () => string;
+};
+
+/**
+ * Works out what an admin edit changes, by going through the SAME steps as an approval
+ * (hard rule 3): the admin's changed criteria act like a submission that is approved at once.
+ * The result is a complete new assessment: changed criteria get new results (keeping their
+ * photos), the others are copied from the current assessment, and the publishing rule decides
+ * whether the level shows on the map. The old assessment is kept as history.
+ */
+export function planAdminEdit(input: AdminEditInput) {
+  const newId = input.newId ?? (() => crypto.randomUUID());
+  const currentByCode = new Map((input.current ?? []).map((r) => [r.criterionCode, r]));
+  const before: Record<string, unknown> = {};
+  const after: Record<string, unknown> = {};
+  const changed: string[] = [];
+
+  // --- Which criteria did the admin really change? ---
+  for (const [code, answer] of Object.entries(input.answers)) {
+    const questions = input.questionsByCriterion[code];
+    if (!questions || !input.criterionIds[code]) throw new ApprovalError(`Unknown criterion “${code}”.`);
+    const current = currentByCode.get(code);
+    let differs = !current;
+    for (const question of questions) {
+      const old = current?.answers.find((a) => a.questionId === question.id)?.value;
+      const proposed = valueFromCorrection(question, answer);
+      if (sameValue(old, proposed)) continue;
+      differs = true;
+      before[`${code}.${question.code}`] = old ?? null;
+      after[`${code}.${question.code}`] = proposed ?? null;
+    }
+    if (differs) changed.push(code);
+  }
+
+  // --- Approve them like a submission (see planApproval above) ---
+  const submitted: StoredResult[] = changed.map((code) => ({
+    id: newId(),
+    criterionId: input.criterionIds[code],
+    criterionCode: code,
+    level: "not_applicable", // placeholder: the real level comes from the main answer below
+    answers: [],
+    photos: currentByCode.get(code)?.photos ?? [],
+  }));
+  const plan = planApproval({
+    submitted,
+    current: input.current,
+    questionsByCriterion: input.questionsByCriterion,
+    mandatory: input.mandatory,
+    corrections: Object.fromEntries(changed.map((code) => [code, input.answers[code]])),
+    level: input.level,
+    newId,
+  });
+
+  return {
+    changed,
+    newResults: submitted.map((r) => ({ id: r.id, criterionId: r.criterionId, level: plan.merged[r.criterionCode].level })),
+    // All inserts: the new results start empty.
+    newAnswers: plan.answerWrites.flatMap((w) =>
+      w.op === "insert" ? [{ id: w.id, criterionResultId: w.criterionResultId, questionId: w.questionId, value: w.value }] : [],
+    ),
+    // The changed criteria keep their photos (same R2 file, new row), like copied criteria do.
+    newPhotos: submitted.flatMap((r) => r.photos.map((p) => ({ ...p, id: newId(), criterionResultId: r.id }))),
+    copiedResults: plan.copiedResults,
+    copiedAnswers: plan.copiedAnswers,
+    copiedPhotos: plan.copiedPhotos,
+    merged: plan.merged,
+    publishable: plan.publishable,
+    place: plan.place,
+    log: changed.length > 0 ? { before, after } : null,
+  };
+}

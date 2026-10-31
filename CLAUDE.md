@@ -111,8 +111,9 @@ with `npx wrangler secret put BETTER_AUTH_SECRET` (and `GOOGLE_CLIENT_ID` / `GOO
 - `requireRole()` reads the role from the database on every call; a dashboard layout check alone
   isn't enough because layouts don't re-run on every navigation. Each page calls it too.
 - Better Auth rate-limits sign-in in production builds (counter resets after 10 quiet seconds).
-- Approving and rejecting live in `web/src/server/review.ts`; the decision logic is pure in
-  `approval-plan.ts` and the rules in `src/lib/scoring.ts` (shared with the browser). Drizzle's
+- Approving, rejecting and admin edits of an assessment live in `web/src/server/review.ts`; the decision
+  logic is pure in `approval-plan.ts` (`planApproval`, and `planAdminEdit` which reuses it) and the rules in
+  `src/lib/scoring.ts` (shared with the browser). The answer inputs are shared too: `src/components/criterion-fields.tsx`. Drizzle's
   `db.run(sql)` can't go in a `db.batch`; use a query builder (insert/update) with `sql` values.
 - Inside `db.batch`, a select that joins two tables with same-named columns (e.g. `places.name` and
   `categories.name`) is read wrongly ("undefined is not valid JSON"). Run that query outside the batch.

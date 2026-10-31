@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CriterionFields, type CriterionOption, type CriterionQuestions, type CriterionValue } from "@/components/criterion-fields";
 import {
   LEVEL_LABELS,
   LEVELS,
@@ -21,23 +22,18 @@ import {
 } from "@/lib/scoring";
 import { approve, openSubmission, reject, type DecisionState } from "./actions";
 
-type Option = { code: string; label: string };
+type Option = CriterionOption;
 
 /** One criterion of the submission, as the page passes it in. */
-export type ReviewCriterion = {
-  code: string;
-  name: string;
+export type ReviewCriterion = CriterionQuestions & {
   mandatory: boolean;
-  mainOptions: Option[];
-  details: { code: string; prompt: string; options: Option[] } | null;
-  hasNotes: boolean;
   submitted: { main: string; details: string[]; notes: string };
   /** What the place's current (published) assessment says, for comparison. */
   current: { main: string | null; details: string[]; notes: string; level: string } | null;
   photoCount: number;
 };
 
-type Answers = { main: string; details: string[]; notes: string };
+type Answers = CriterionValue;
 
 export function ReviewForm({
   submissionId,
@@ -98,54 +94,12 @@ export function ReviewForm({
             <CardContent className={canDecide ? "grid gap-4 md:grid-cols-2" : ""}>
               <fieldset disabled={!canDecide} className="space-y-3">
                 <legend className="mb-2 text-sm font-medium">{canDecide ? "Submitted (you can correct it)" : "Saved answers"}</legend>
-                <div role="radiogroup" aria-label={`${c.name}: main answer`} className="space-y-1">
-                  {c.mainOptions.map((o) => (
-                    <label key={o.code} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name={`${c.code}-main`}
-                        value={o.code}
-                        checked={answers[c.code].main === o.code}
-                        onChange={() => update(c.code, { main: o.code })}
-                      />
-                      {o.label}
-                      {o.code === c.submitted.main && corrected(c) && <span className="text-xs text-muted-foreground">(submitted)</span>}
-                    </label>
-                  ))}
-                </div>
-                {c.details && (
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">{c.details.prompt}</div>
-                    {c.details.options.map((o) => (
-                      <label key={o.code} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={answers[c.code].details.includes(o.code)}
-                          onChange={(e) =>
-                            update(c.code, {
-                              details: e.target.checked
-                                ? [...answers[c.code].details, o.code]
-                                : answers[c.code].details.filter((d) => d !== o.code),
-                            })
-                          }
-                        />
-                        {o.label}
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {c.hasNotes && (
-                  <label className="grid gap-1 text-sm">
-                    <span className="text-muted-foreground">Notes</span>
-                    <textarea
-                      value={answers[c.code].notes}
-                      onChange={(e) => update(c.code, { notes: e.target.value })}
-                      rows={2}
-                      maxLength={2000}
-                      className="rounded-lg border border-input bg-transparent px-2 py-1"
-                    />
-                  </label>
-                )}
+                <CriterionFields
+                  criterion={c}
+                  value={answers[c.code]}
+                  onChange={(change) => update(c.code, change)}
+                  mark={corrected(c) ? { code: c.submitted.main, label: "(submitted)" } : undefined}
+                />
                 <p className="text-sm text-muted-foreground">
                   {c.photoCount === 0
                     ? "No photos."

@@ -19,6 +19,9 @@ const SAVED_MESSAGE: Record<string, string> = {
   "1": "Saved.",
   hidden: "Hidden. The place no longer appears in the app; everything about it is kept.",
   active: "The place appears in the app again.",
+  assessment: "Saved. The new assessment is published on the map.",
+  "assessment-unpublished":
+    "Saved. The answers are kept, but the level isn't shown on the map until the publishing rule is met (see Edit accessibility).",
 };
 
 // One place: its details, what's published, and every submission about it.
@@ -69,6 +72,9 @@ export default async function PlacePage({ params, searchParams }: PageProps<"/da
           <div className="flex flex-wrap gap-2">
             <Button nativeButton={false} render={<Link href={`/dashboard/places/${place.id}/edit`} />}>
               Edit details
+            </Button>
+            <Button nativeButton={false} variant="outline" render={<Link href={`/dashboard/places/${place.id}/assessment`} />}>
+              Edit accessibility
             </Button>
             <form action={changePlaceStatus}>
               <input type="hidden" name="placeId" value={place.id} />
@@ -136,7 +142,8 @@ export default async function PlacePage({ params, searchParams }: PageProps<"/da
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              Verified {formatDate(results[0].verifiedAt)}. Levels change only by approving a submission.
+              Verified {formatDate(results[0].verifiedAt)}. Levels change by approving a submission
+              {isAdmin ? ", or with Edit accessibility" : ""}.
             </p>
             <ul className="divide-y rounded-lg border text-sm">
               {results.map((r) => (

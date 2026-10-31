@@ -87,6 +87,14 @@ Add new decisions at the top of the relevant section with a date.
   criteria in the submission; a reviewer can't add criteria the contributor didn't assess (2026-10-30).
 - **Double decisions are impossible:** the decision batch includes a guarded change_log insert that fails
   (and cancels the whole batch) if someone else decided the submission first (2026-10-30).
+- **Admins can correct a published assessment directly** ("Edit accessibility" on a place's page, 2026-10-31),
+  e.g. a mistake spotted later or MOTIVAȚIE's own visit, also for a place with no assessment yet. Saving goes
+  through the same steps as an approval (`planAdminEdit` -> `planApproval`): a new assessment with origin
+  `admin_edit` becomes current (`based_on_id` = the old one, which stays as history), unchanged criteria and
+  photos are copied, the publishing rule applies, and the level starts at the suggestion once an answer changes.
+  Published immediately, without review. Every changed answer is logged before/after, with an optional note.
+  "Last verified" moves to today only if the admin ticks "checked in person"; a desk correction keeps the old
+  date so the place stays in the "longest since verified" list. Criteria can be added or corrected, not removed.
 - Rejected submissions are kept forever; **their photos are deleted after 6 months** (Cron job).
 - Rule-based score suggestions are the P0 baseline; P1 ML suggestions are compared against both
   rules and reviewer decisions. Suggestions are never shown to the public.

@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ApprovalError, planApproval, type QuestionInfo, type StoredResult } from "../src/server/approval-plan.ts";
+import { ApprovalError, planAdminEdit, planApproval, type QuestionInfo, type StoredResult } from "../src/server/approval-plan.ts";
 import { levelFromMainAnswer, suggestLevel, type AnswerMap } from "../src/lib/scoring.ts";
 
 const MANDATORY = ["access_until_entering", "ramp", "entrance_doors", "interior_space", "adapted_toilet", "designated_parking"];
@@ -164,4 +164,61 @@ test("the form can't add a criterion or an answer that doesn't exist", () => {
   assert.throws(() => planApproval({ ...base, submitted, corrections: { adapted_toilet: { main: "yes" } } }), ApprovalError);
   assert.throws(() => planApproval({ ...base, submitted, corrections: { entrance_doors: { main: "huge" } } }), ApprovalError);
   assert.throws(() => planApproval({ ...base, submitted, corrections: { entrance_doors: {} } }), ApprovalError);
+});
+
+// --- Admin edits: the same merge and publishing rule as an approval ---
+
+const IDS = Object.fromEntries(Object.keys(Q).map((code) => [code, `c_${code}`]));
+const published = () => [
+  result("cur_access", "access_until_entering", "accessible", 2),
+  result("cur_ramp", "ramp", "not_needed"),
+  result("cur_doors", "entrance_doors", "wide", 1),
+  result("cur_interior", "interior_space", "accessible"),
+  result("cur_toilet", "adapted_toilet", "yes"),
+  result("cur_parking", "designated_parking", "no"),
+];
+const editBase = { criterionIds: IDS, questionsByCriterion: Q, mandatory: MANDATORY, newId };
+
+test("admin edit: only the changed criterion gets a new result; the rest is copied with photos", () => {
+  const plan = planAdminEdit({
+    ...editBase,
+    current: published(),
+    // The form sends every answered criterion; unchanged ones must not count as changes.
+    answers: { access_until_entering: { main: "accessible" }, adapted_toilet: { main: "no", notes: "" } },
+    level: "partial",
+  });
+  assert.deepEqual(plan.changed, ["adapted_toilet"]);
+  assert.deepEqual(plan.newResults.map((r) => r.level), ["inaccessible"]);
+  assert.equal(plan.copiedResults.length, 5);
+  assert.equal(plan.copiedPhotos.length, 3);
+  assert.deepEqual(plan.log, { before: { "adapted_toilet.main": "yes" }, after: { "adapted_toilet.main": "no" } });
+  assert.deepEqual(plan.place, { publishedLevel: "partial", hasDesignatedParking: false });
+});
+
+test("admin edit: a changed criterion keeps its photos", () => {
+  const plan = planAdminEdit({ ...editBase, current: published(), answers: { entrance_doors: { main: "narrow" } }, level: "inaccessible" });
+  assert.equal(plan.newPhotos.length, 1);
+  assert.equal(plan.newPhotos[0].criterionResultId, plan.newResults[0].id);
+  assert.equal(plan.copiedPhotos.length, 2);
+});
+
+test("admin edit: a never-rated place can be assessed; the publishing rule still applies", () => {
+  const entryOnly = { access_until_entering: { main: "accessible" }, ramp: { main: "not_needed" }, entrance_doors: { main: "wide" } };
+  const notEnough = planAdminEdit({ ...editBase, current: null, answers: entryOnly, level: "accessible" });
+  assert.equal(notEnough.newResults.length, 3);
+  assert.equal(notEnough.place.publishedLevel, null);
+  const enough = planAdminEdit({ ...editBase, current: null, answers: { ...entryOnly, entrance_doors: { main: "narrow" } }, level: "inaccessible" });
+  assert.equal(enough.place.publishedLevel, "inaccessible");
+});
+
+test("admin edit: nothing changed -> no new results and nothing to log", () => {
+  const plan = planAdminEdit({ ...editBase, current: published(), answers: { ramp: { main: "not_needed" } }, level: "accessible" });
+  assert.deepEqual(plan.changed, []);
+  assert.equal(plan.log, null);
+  assert.equal(plan.copiedResults.length, 6);
+});
+
+test("admin edit: unknown criteria and answers are refused", () => {
+  assert.throws(() => planAdminEdit({ ...editBase, current: null, answers: { teleporter: { main: "yes" } }, level: "accessible" }), ApprovalError);
+  assert.throws(() => planAdminEdit({ ...editBase, current: null, answers: { ramp: { main: "maybe" } }, level: "accessible" }), ApprovalError);
 });

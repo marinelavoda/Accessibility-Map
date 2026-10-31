@@ -69,6 +69,7 @@ check "a place page opens" "200" "$(visit reviewer@example.com /dashboard/places
 check "an unknown place is 404" "404" "$(status reviewer@example.com /dashboard/places/nope)"
 check "add a place -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/places/new)"
 check "edit a place -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/places/p_primaria/edit)"
+check "edit accessibility -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/places/p_primaria/assessment)"
 check "users page -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/users)"
 check "change history -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/history)"
 check "export page -> no-access page" "/no-access" "$(visit reviewer@example.com /dashboard/export)"
@@ -83,6 +84,8 @@ check "export download works" "200" "$(status admin@example.com /api/export/plac
 check "unknown export is 404" "404" "$(status admin@example.com /api/export/passwords)"
 check "add a place opens" "200" "$(visit admin@example.com /dashboard/places/new)"
 check "edit a place opens" "200" "$(visit admin@example.com /dashboard/places/p_primaria/edit)"
+check "edit accessibility opens" "200" "$(visit admin@example.com /dashboard/places/p_primaria/assessment)"
+check "edit accessibility of an unknown place is 404" "404" "$(status admin@example.com /dashboard/places/nope/assessment)"
 
 echo "New sign-up that asks to be admin"
 EMAIL="newcomer-$RANDOM@example.com"

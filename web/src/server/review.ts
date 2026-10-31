@@ -1,5 +1,7 @@
 // Reviewing a submission: load it, approve it, reject it (sequence diagram 08c).
 // Only ever called from the review page's server actions, AFTER requireRole("reviewer").
+// Also admin edits of a published assessment (saveAdminEdit, AFTER requireRole("admin")),
+// which go through the same approval steps.
 //
 // Approving and rejecting each save everything in ONE D1 batch (hard rule 4), including the
 // change_log rows (hard rule 5). This is the only code allowed to make an assessment current
@@ -24,7 +26,7 @@ import {
   users,
 } from "@/db/schema";
 import type { Level } from "@/lib/scoring";
-import { ApprovalError, planApproval, type Correction, type QuestionInfo, type StoredResult } from "./approval-plan";
+import { ApprovalError, planAdminEdit, planApproval, type Correction, type QuestionInfo, type StoredResult } from "./approval-plan";
 import type { CurrentUser } from "./require-role";
 
 export { ApprovalError };
@@ -188,15 +190,16 @@ function chunks<T>(rows: T[], columns: number): T[][] {
   return Array.from({ length: Math.ceil(rows.length / size) }, (_, i) => rows.slice(i * size, (i + 1) * size));
 }
 
-async function runBatch(statements: BatchItem<"sqlite">[]) {
+const DECISION_CONFLICT =
+  "This couldn't be saved: someone else may have decided this submission, or the place changed in the meantime. Reload the page and check.";
+
+async function runBatch(statements: BatchItem<"sqlite">[], conflictMessage = DECISION_CONFLICT) {
   try {
     await getDb().batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
   } catch (error) {
     console.error("Review batch failed", error);
     if (!isConstraintError(error)) throw error; // a bug, not a conflict: show it as one
-    throw new ApprovalError(
-      "This couldn't be saved: someone else may have decided this submission, or the place changed in the meantime. Reload the page and check.",
-    );
+    throw new ApprovalError(conflictMessage);
   }
 }
 
@@ -328,4 +331,146 @@ export async function rejectSubmission(reviewer: CurrentUser, submissionId: stri
     guardedDecisionLog(submissionId, "rejected", reviewer, now, { status: "rejected", rejection_reason: text }),
   ]);
   // TODO(email): send the decision to the contributor once an email service is chosen (PRD R19, R24).
+}
+
+// ---------------------------------------------------------------------------
+// Admin edits: correct a place's published assessment directly
+// ---------------------------------------------------------------------------
+
+/** What the "Edit accessibility" page shows: the place, its current assessment and the questionnaire. */
+export async function loadForAdminEdit(placeId: string) {
+  const db = getDb();
+  const [place] = await db
+    .select({
+      id: places.id,
+      name: places.name,
+      address: places.address,
+      publishedLevel: places.publishedLevel,
+      hasDesignatedParking: places.hasDesignatedParking,
+      lastVerifiedAt: places.lastVerifiedAt,
+      status: places.status,
+    })
+    .from(places)
+    .where(eq(places.id, placeId));
+  if (!place) return null;
+  const [current] = await db
+    .select({ id: assessments.id, overallLevel: assessments.overallLevel, verifiedAt: assessments.verifiedAt })
+    .from(assessments)
+    .where(and(eq(assessments.placeId, placeId), eq(assessments.isCurrent, true)));
+  const [results, questionnaire] = await Promise.all([
+    current ? loadResults(current.id) : Promise.resolve([]),
+    loadQuestionnaire(),
+  ]);
+  return { place, current: current ? { ...current, results } : null, questionnaire };
+}
+
+/**
+ * Saves an admin's corrections as a NEW current assessment (origin "admin_edit"), built by the
+ * same steps as an approval (planAdminEdit -> planApproval). The old assessment stays as history.
+ *
+ * `expectedCurrentId` is the current assessment the admin saw when the page opened: if another
+ * approval or edit replaced it since, nothing is saved. Inside the batch, the database's
+ * "one current assessment per place" rule catches the same thing at the very last moment.
+ *
+ * `newVisit`: the place was checked in person, so "last verified" moves to today. A desk
+ * correction (e.g. a wrong answer typed in) keeps the old date, so the place doesn't jump out
+ * of the "longest since verified" list without anyone having looked at it.
+ */
+export async function saveAdminEdit(
+  admin: CurrentUser,
+  placeId: string,
+  answersByCriterion: Record<string, Correction>,
+  level: Level,
+  options: { expectedCurrentId: string | null; newVisit: boolean; note: string },
+) {
+  const note = options.note.trim();
+  if (note.length > 1000) throw new ApprovalError("The note can be at most 1000 characters.");
+
+  const data = await loadForAdminEdit(placeId);
+  if (!data) throw new ApprovalError("This place no longer exists.");
+  const { place, current, questionnaire } = data;
+  if ((current?.id ?? null) !== options.expectedCurrentId) {
+    throw new ApprovalError("This place's assessment changed since you opened the page (an approval or another edit). Reload the page and check.");
+  }
+
+  const plan = planAdminEdit({
+    current: current?.results ?? null,
+    criterionIds: Object.fromEntries(questionnaire.map((c) => [c.code, c.id])),
+    questionsByCriterion: Object.fromEntries(
+      questionnaire.map((c) => [c.code, c.questions.map((q) => ({ id: q.id, code: q.code, type: q.type, options: q.options }))]),
+    ),
+    mandatory: questionnaire.filter((c) => c.isMandatory).map((c) => c.code),
+    answers: answersByCriterion,
+    level,
+  });
+  if (plan.changed.length === 0 && level === current?.overallLevel && !options.newVisit) {
+    throw new ApprovalError("Nothing changed: no answer or level is different from what's published.");
+  }
+
+  const db = getDb();
+  const now = new Date();
+  const assessmentId = crypto.randomUUID();
+  const lastVerifiedAt = options.newVisit || !place.lastVerifiedAt ? now : place.lastVerifiedAt;
+  const log = (tableName: string, recordId: string, action: "insert" | "update", oldRow: unknown, newRow: unknown) =>
+    db.insert(changeLog).values({ tableName, recordId, action, oldRow, newRow, changedBy: admin.id, changedAt: now });
+
+  const statements: BatchItem<"sqlite">[] = [];
+
+  // The old current assessment becomes history.
+  if (current) {
+    statements.push(
+      db.update(assessments).set({ isCurrent: false }).where(and(eq(assessments.id, current.id), eq(assessments.isCurrent, true))),
+      log("assessments", current.id, "update", { is_current: true }, { is_current: false }),
+    );
+  }
+
+  // The new assessment, current straight away. If another assessment became current meanwhile,
+  // the "one current per place" rule fails here and D1 cancels the whole batch.
+  statements.push(
+    db.insert(assessments).values({
+      id: assessmentId,
+      placeId,
+      origin: "admin_edit",
+      basedOnId: current?.id ?? null,
+      overallLevel: level,
+      isCurrent: true,
+      verifiedAt: now,
+      createdAt: now,
+    }),
+    log("assessments", assessmentId, "insert", null, {
+      origin: "admin_edit",
+      overall_level: level,
+      based_on_id: current?.id ?? null,
+      ...(note ? { note } : {}),
+      ...(options.newVisit ? { new_visit: true } : {}),
+    }),
+  );
+  if (plan.log) statements.push(log("assessments", assessmentId, "update", plan.log.before, plan.log.after));
+
+  // Its criteria: the admin's changed ones, then the copies of the rest.
+  const results = [...plan.newResults, ...plan.copiedResults].map((r) => ({ ...r, assessmentId, createdAt: now }));
+  for (const part of chunks(results, 5)) statements.push(db.insert(criterionResults).values(part));
+  for (const part of chunks([...plan.newAnswers, ...plan.copiedAnswers], 4)) statements.push(db.insert(answers).values(part));
+  for (const part of chunks([...plan.newPhotos, ...plan.copiedPhotos], 6)) statements.push(db.insert(photos).values(part));
+
+  // The fields copied onto the place (published level only if the publishing rule is met).
+  statements.push(
+    db
+      .update(places)
+      .set({ publishedLevel: plan.place.publishedLevel, hasDesignatedParking: plan.place.hasDesignatedParking, lastVerifiedAt })
+      .where(eq(places.id, placeId)),
+    log(
+      "places",
+      placeId,
+      "update",
+      { published_level: place.publishedLevel, has_designated_parking: place.hasDesignatedParking, last_verified_at: place.lastVerifiedAt },
+      { published_level: plan.place.publishedLevel, has_designated_parking: plan.place.hasDesignatedParking, last_verified_at: lastVerifiedAt },
+    ),
+  );
+
+  await runBatch(
+    statements,
+    "This couldn't be saved: the place's assessment changed in the meantime (an approval or another edit). Reload the page and check.",
+  );
+  return { published: plan.publishable };
 }
