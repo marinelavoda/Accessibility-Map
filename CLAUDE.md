@@ -91,7 +91,7 @@ Run these from `web/`. Node is installed with fnm: if `node`/`npm` isn't found, 
   or restart it afterwards: it keeps the deleted database file open)
 - `npm run db:check` — verify database constraints against the migrations (Python 3)
 - `npm test` — unit tests (roles, passwords, CSV export, change descriptions, scoring rules, approval plan,
-  place form checks)
+  place form checks, places list filters)
 - `bash test/access-check.sh` — signs in as each sample role and checks which dashboard pages
   open (needs `npm run dev` running and the local sample data; local only)
 - `npm run make-admin -- <email> [--remote]` — make an existing account admin (first admin only)

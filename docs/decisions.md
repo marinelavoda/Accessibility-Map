@@ -29,6 +29,10 @@ Add new decisions at the top of the relevant section with a date.
     assessments keeps its history and can only be hidden; an OSM place would come back with the next
     import, so it can only be hidden too.
   - No map picker yet (would need MapLibre in the dashboard); a link opens the location on openstreetmap.org to check it.
+- **Dashboard places list (2026-10-31):** search by name and other names (same search index as the app,
+  ignores diacritics), filters for category, level (incl. "not yet rated") and status, sort by longest since
+  verified / name / recently added, 50 per page. Filters live in the address bar so a filtered list can be
+  bookmarked or shared. Addresses are not searched (the index covers names only).
 
 ## Map and search
 
