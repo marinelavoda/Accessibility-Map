@@ -95,6 +95,10 @@ Add new decisions at the top of the relevant section with a date.
   Published immediately, without review. Every changed answer is logged before/after, with an optional note.
   "Last verified" moves to today only if the admin ticks "checked in person"; a desk correction keeps the old
   date so the place stays in the "longest since verified" list. Criteria can be added or corrected, not removed.
+  The page shows what's published as a summary; staff open only the criteria they want to change (Edit /
+  Add answer for unassessed ones), then publish all changes at once from a panel listing every change and the
+  resulting level (suggested, with override; a level-only change is allowed). A change that would take a place
+  off the map (publishing rule no longer met) shows a red warning.
 - Rejected submissions are kept forever; **their photos are deleted after 6 months** (Cron job).
 - Rule-based score suggestions are the P0 baseline; P1 ML suggestions are compared against both
   rules and reviewer decisions. Suggestions are never shown to the public.
