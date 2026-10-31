@@ -35,6 +35,12 @@ Add new decisions at the top of the relevant section with a date.
   bookmarked or shared. Addresses are searched too (2026-10-31, migration 0002 added `address` to the
   search index); the mobile app can limit its search to names with an FTS column filter if address matches
   turn out to be noisy there.
+- **Dashboard overview (2026-10-31):** a to-do box first ("N submissions waiting", red with words when the
+  oldest has waited over 14 days), then coverage of places shown in the app (rated of total, per level,
+  places last verified over 24 months ago, hidden places) and "this week" (last 7 days: received, decided,
+  decided by you). Every number links to the matching filtered list; the places list gained a "Last verified:
+  over 24 months ago" filter for this. Limits live in `web/src/lib/overview.ts`. Not included for now:
+  "opened but not decided", coverage by category, recent activity, most-searched places (needs the app).
 
 ## Map and search
 

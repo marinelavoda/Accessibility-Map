@@ -11,6 +11,7 @@ import {
   PAGE_SIZE,
   SORTS,
   STATUS_FILTERS,
+  VERIFIED_FILTERS,
   parsePlaceFilters,
   placeListHref,
 } from "@/lib/place-filters";
@@ -36,7 +37,7 @@ export default async function PlacesPage({ searchParams }: PageProps<"/dashboard
   const first = (filters.page - 1) * PAGE_SIZE + 1;
   const last = first + rows.length - 1;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hasFilters = Boolean(filters.q || filters.category || filters.level || filters.status);
+  const hasFilters = Boolean(filters.q || filters.category || filters.level || filters.status || filters.verified);
 
   return (
     <div className="space-y-6">
@@ -68,7 +69,7 @@ export default async function PlacesPage({ searchParams }: PageProps<"/dashboard
             placeholder="e.g. farmacia, or stefan cel mare 83 (diacritics optional)"
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-1">
             <Label htmlFor="category">Category</Label>
             <select id="category" name="category" defaultValue={filters.category ?? ""} className={selectClass}>
@@ -103,6 +104,17 @@ export default async function PlacesPage({ searchParams }: PageProps<"/dashboard
             </select>
           </div>
           <div className="space-y-1">
+            <Label htmlFor="verified">Last verified</Label>
+            <select id="verified" name="verified" defaultValue={filters.verified ?? ""} className={selectClass}>
+              <option value="">Any time</option>
+              {Object.entries(VERIFIED_FILTERS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
             <Label htmlFor="sort">Sort by</Label>
             <select id="sort" name="sort" defaultValue={filters.sort} className={selectClass}>
               {Object.entries(SORTS).map(([value, label]) => (
@@ -116,7 +128,7 @@ export default async function PlacesPage({ searchParams }: PageProps<"/dashboard
         <div className="flex gap-2">
           <Button type="submit">Search</Button>
           {hasFilters && (
-            <Button nativeButton={false} variant="outline" render={<Link href={placeListHref({ ...filters, q: "", category: null, level: null, status: null, page: 1 })} />}>
+            <Button nativeButton={false} variant="outline" render={<Link href={placeListHref({ ...filters, q: "", category: null, level: null, status: null, verified: null, page: 1 })} />}>
               Clear filters
             </Button>
           )}

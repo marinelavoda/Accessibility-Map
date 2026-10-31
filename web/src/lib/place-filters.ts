@@ -1,6 +1,8 @@
 // Reads the Places list's search box, filters and page number from the address bar
 // (?q=farmacie&level=unrated&page=2), and turns the search words into a safe query for
-// the place_search index. No imports, so the tests can load it directly.
+// the place_search index. Only imports ./overview.ts (no imports either), so the tests can load it directly.
+
+import { STALE_AFTER_MONTHS } from "./overview.ts";
 
 export const PAGE_SIZE = 50;
 
@@ -17,6 +19,11 @@ export const STATUS_FILTERS = {
   gone_from_osm: "Gone from OpenStreetMap",
 } as const;
 
+/** "old" = last verified more than STALE_AFTER_MONTHS ago (the Overview's "old ratings" link). */
+export const VERIFIED_FILTERS = {
+  old: `Over ${STALE_AFTER_MONTHS} months ago`,
+} as const;
+
 export const SORTS = {
   overdue: "Longest since last verified",
   name: "Name (A–Z)",
@@ -28,6 +35,7 @@ export type PlaceFilters = {
   category: string | null;
   level: keyof typeof LEVEL_FILTERS | null;
   status: keyof typeof STATUS_FILTERS | null;
+  verified: keyof typeof VERIFIED_FILTERS | null;
   sort: keyof typeof SORTS;
   page: number; // 1, 2, 3 ...
 };
@@ -48,6 +56,7 @@ export function parsePlaceFilters(params: SearchParams): PlaceFilters {
     category: one("category") || null,
     level: pick(LEVEL_FILTERS, one("level")),
     status: pick(STATUS_FILTERS, one("status")),
+    verified: pick(VERIFIED_FILTERS, one("verified")),
     sort: pick(SORTS, one("sort")) ?? "overdue",
     page: Number.isInteger(page) && page > 1 ? page : 1,
   };
@@ -61,6 +70,7 @@ export function placeListHref(filters: PlaceFilters, change: Partial<PlaceFilter
   if (f.category) params.set("category", f.category);
   if (f.level) params.set("level", f.level);
   if (f.status) params.set("status", f.status);
+  if (f.verified) params.set("verified", f.verified);
   if (f.sort !== "overdue") params.set("sort", f.sort);
   if (f.page > 1) params.set("page", String(f.page));
   const query = params.toString();

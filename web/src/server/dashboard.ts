@@ -2,27 +2,49 @@
 // pending submissions, hidden places and people's emails, so they must only ever be
 // called from a dashboard page AFTER requireRole() has let the person in.
 
-import { and, asc, count, desc, eq, isNotNull, isNull, ne, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, lt, min, ne, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { getDb } from "@/db";
 import { assessments, categories, places, scoreSuggestions, submissions, users } from "@/db/schema";
+import { staleCutoff, weekStart } from "@/lib/overview";
 import { PAGE_SIZE, toSearchQuery, type PlaceFilters } from "@/lib/place-filters";
 
-export async function getOverviewCounts() {
+/**
+ * Everything the Overview page shows, in one database request. "Coverage" counts only places
+ * shown in the app (active); hidden places are counted separately.
+ */
+export async function getOverview(userId: string, now = new Date()) {
   const db = getDb();
-  const [[pending], [active], [rated], [hidden], [staff]] = await db.batch([
-    db.select({ n: count() }).from(submissions).where(eq(submissions.status, "pending")),
-    db.select({ n: count() }).from(places).where(eq(places.status, "active")),
-    db.select({ n: count() }).from(places).where(isNotNull(places.publishedLevel)),
+  const since = weekStart(now);
+  const decided = and(ne(submissions.status, "pending"), gte(submissions.reviewedAt, since));
+  const [[waiting], levels, [stale], [hidden], [received], [decidedAll], [decidedByYou]] = await db.batch([
+    db
+      .select({ n: count(), oldest: min(submissions.submittedAt) })
+      .from(submissions)
+      .where(eq(submissions.status, "pending")),
+    db
+      .select({ level: places.publishedLevel, n: count() })
+      .from(places)
+      .where(eq(places.status, "active"))
+      .groupBy(places.publishedLevel),
+    db
+      .select({ n: count() })
+      .from(places)
+      .where(and(eq(places.status, "active"), lt(places.lastVerifiedAt, staleCutoff(now)))),
     db.select({ n: count() }).from(places).where(eq(places.status, "hidden")),
-    db.select({ n: count() }).from(users).where(sql`${users.role} IN ('reviewer', 'admin')`),
+    db.select({ n: count() }).from(submissions).where(gte(submissions.submittedAt, since)),
+    db.select({ n: count() }).from(submissions).where(decided),
+    db.select({ n: count() }).from(submissions).where(and(decided, eq(submissions.reviewedBy, userId))),
   ]);
+
+  const byLevel = { accessible: 0, partial: 0, inaccessible: 0, unrated: 0 };
+  for (const row of levels) byLevel[row.level ?? "unrated"] = row.n;
+  const active = byLevel.accessible + byLevel.partial + byLevel.inaccessible + byLevel.unrated;
+
   return {
-    pendingSubmissions: pending.n,
-    activePlaces: active.n,
-    ratedPlaces: rated.n,
-    hiddenPlaces: hidden.n,
-    staff: staff.n,
+    waiting: { count: waiting.n, oldest: waiting.oldest },
+    coverage: { active, rated: active - byLevel.unrated, byLevel, stale: stale.n, hidden: hidden.n },
+    week: { received: received.n, decided: decidedAll.n, decidedByYou: decidedByYou.n },
   };
 }
 
@@ -84,6 +106,7 @@ export async function listPlaces(filters: PlaceFilters) {
   if (filters.level === "unrated") conditions.push(isNull(places.publishedLevel));
   else if (filters.level) conditions.push(eq(places.publishedLevel, filters.level));
   if (filters.status) conditions.push(eq(places.status, filters.status));
+  if (filters.verified === "old") conditions.push(lt(places.lastVerifiedAt, staleCutoff()));
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const order = {
