@@ -68,8 +68,9 @@ export function placeListHref(filters: PlaceFilters, change: Partial<PlaceFilter
 }
 
 /**
- * Search words -> an FTS5 query: every word must match the start of a word in the name
- * or other names. "farm fam" -> "farm"* "fam"*  (finds "Farmacia Familiei").
+ * Search words -> an FTS5 query: every word must match the start of a word in the name,
+ * other names or address. "farm fam" -> "farm"* "fam"*  (finds "Farmacia Familiei");
+ * words can mix both: "farmacia stefan" finds a pharmacy on Ștefan cel Mare.
  * Only letters and digits are kept, so quotes or FTS operators (AND, NEAR, *) typed in the
  * box can't break the query. Diacritics are handled by the index itself ("chisinau" finds
  * "Chișinău"). Returns null when there's nothing to search for.

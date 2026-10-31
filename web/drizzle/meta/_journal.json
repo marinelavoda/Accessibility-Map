@@ -15,6 +15,13 @@
       "when": 1793372299725,
       "tag": "0001_search",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793446720898,
+      "tag": "0002_search_address",
+      "breakpoints": true
     }
   ]
 }

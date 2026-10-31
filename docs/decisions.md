@@ -32,7 +32,9 @@ Add new decisions at the top of the relevant section with a date.
 - **Dashboard places list (2026-10-31):** search by name and other names (same search index as the app,
   ignores diacritics), filters for category, level (incl. "not yet rated") and status, sort by longest since
   verified / name / recently added, 50 per page. Filters live in the address bar so a filtered list can be
-  bookmarked or shared. Addresses are not searched (the index covers names only).
+  bookmarked or shared. Addresses are searched too (2026-10-31, migration 0002 added `address` to the
+  search index); the mobile app can limit its search to names with an FTS column filter if address matches
+  turn out to be noisy there.
 
 ## Map and search
 
@@ -41,8 +43,8 @@ Add new decisions at the top of the relevant section with a date.
 - Tapping a base-map label: the app asks the backend which place it is (match by location + name,
   or OSM ID if the tile provider exposes it) and shows the place page. Unrated → "Not yet rated:
   assess this place". Test matching reliability in the first MapLibre prototype.
-- **Search runs on our own database** (FTS5, ignores diacritics, includes `other_names`) and finds
-  every place, rated or not.
+- **Search runs on our own database** (FTS5, ignores diacritics, includes `other_names` and, since
+  2026-10-31, `address`) and finds every place, rated or not.
 - "Show unrated places" toggle (old PRD R6) dropped.
 - Directions: open the phone's own maps app.
 

@@ -59,13 +59,13 @@ export default async function PlacesPage({ searchParams }: PageProps<"/dashboard
 
       <form method="get" role="search" aria-label="Search and filter places" className="space-y-3 rounded-lg border p-4">
         <div className="space-y-1">
-          <Label htmlFor="q">Search by name</Label>
+          <Label htmlFor="q">Search by name or address</Label>
           <Input
             id="q"
             name="q"
             type="search"
             defaultValue={filters.q}
-            placeholder="e.g. farmacia, or chisinau without diacritics"
+            placeholder="e.g. farmacia, or stefan cel mare 83 (diacritics optional)"
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
