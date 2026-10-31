@@ -90,7 +90,8 @@ Run these from `web/`. Node is installed with fnm: if `node`/`npm` isn't found, 
 - `npm run db:reset:local` — wipe the local database, then migrate and seed again (stop `npm run dev` first,
   or restart it afterwards: it keeps the deleted database file open)
 - `npm run db:check` — verify database constraints against the migrations (Python 3)
-- `npm test` — unit tests (roles, passwords, CSV export, change descriptions, scoring rules, approval plan)
+- `npm test` — unit tests (roles, passwords, CSV export, change descriptions, scoring rules, approval plan,
+  place form checks)
 - `bash test/access-check.sh` — signs in as each sample role and checks which dashboard pages
   open (needs `npm run dev` running and the local sample data; local only)
 - `npm run make-admin -- <email> [--remote]` — make an existing account admin (first admin only)
@@ -113,3 +114,10 @@ with `npx wrangler secret put BETTER_AUTH_SECRET` (and `GOOGLE_CLIENT_ID` / `GOO
 - Approving and rejecting live in `web/src/server/review.ts`; the decision logic is pure in
   `approval-plan.ts` and the rules in `src/lib/scoring.ts` (shared with the browser). Drizzle's
   `db.run(sql)` can't go in a `db.batch`; use a query builder (insert/update) with `sql` values.
+- Inside `db.batch`, a select that joins two tables with same-named columns (e.g. `places.name` and
+  `categories.name`) is read wrongly ("undefined is not valid JSON"). Run that query outside the batch.
+- Forms with a `<select>` that can come back with an error: submit them with `onSubmit` +
+  `startTransition(() => action(formData))`, not `action={...}`. React resets the form after an
+  action, which jumps the select back to its first option (see `places/place-form.tsx`).
+- Managing places lives in `web/src/server/places-admin.ts` (writes) and `src/lib/place-input.ts`
+  (form checks, pure). It never touches the published fields (hard rule 3).

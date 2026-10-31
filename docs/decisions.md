@@ -1,6 +1,6 @@
 # Decisions log
 
-Last updated: 2026-10-30. Where this file and the PRD (Google Doc) disagree, this file wins.
+Last updated: 2026-10-31. Where this file and the PRD (Google Doc) disagree, this file wins.
 Add new decisions at the top of the relevant section with a date.
 
 ## Scope
@@ -16,6 +16,19 @@ Add new decisions at the top of the relevant section with a date.
   OSM tags are mapped to ~10–15 app categories.
 - **OSM refresh:** a place that disappears from OSM is kept and flagged `gone_from_osm` if it has
   assessments; otherwise it is deleted.
+- **Managing places (admins, 2026-10-31):**
+  - **Add a missing place:** the admin searches an address with Nominatim (only when they press "Find",
+    limited to Chișinău) or types the coordinates. If another place is within ~100 m, the admin must
+    confirm it's a different one (most "missing" places are already there under another name).
+    A new place is shown right away as "Not yet rated".
+  - **Edit** changes only the place's own details (name, other names, category, location, address),
+    never its accessibility level: that changes only by approving a submission. If someone else changed
+    the place since the form was opened, nothing is saved (same guarded-batch idea as review decisions).
+  - **Hide / show again:** hidden places disappear from the public app; everything about them is kept.
+  - **Delete** only for admin-added places with no assessments (i.e. added by mistake). A place with
+    assessments keeps its history and can only be hidden; an OSM place would come back with the next
+    import, so it can only be hidden too.
+  - No map picker yet (would need MapLibre in the dashboard); a link opens the location on openstreetmap.org to check it.
 
 ## Map and search
 
@@ -119,6 +132,8 @@ Add new decisions at the top of the relevant section with a date.
 - [ ] ODbL share-alike: check what applies to exports combining OSM and MOTIVAȚIE data.
 - [ ] Baseline review time per PDF submission (for the review-time success metric).
 - [x] Compare our Better Auth tables with Better Auth 1.7's core schema (checked by hand 2026-10-30: same columns).
+- [ ] OSM refresh script: when an admin has edited an OSM place's name or location, should the import
+      keep the admin's edit or take OpenStreetMap's? (Check the change log for admin edits before overwriting.)
 - [ ] Email service (for password reset, email verification and rejection emails) — not chosen yet.
 
 ## PRD sections known to be outdated

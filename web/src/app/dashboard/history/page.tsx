@@ -129,6 +129,8 @@ export default async function HistoryPage({ searchParams }: PageProps<"/dashboar
                       </Link>
                     ) : c.userName ? (
                       c.userName
+                    ) : c.tableName === "places" && c.action === "delete" ? (
+                      `${(c.oldRow as { name?: string } | null)?.name ?? "A place"} (deleted)`
                     ) : (
                       <span className="font-mono text-xs text-muted-foreground">{c.recordId}</span>
                     )}
