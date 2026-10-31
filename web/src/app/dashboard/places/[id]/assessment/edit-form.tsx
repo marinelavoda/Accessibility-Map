@@ -1,7 +1,7 @@
 "use client";
 
 // "Edit accessibility" (admins): what's published, criterion by criterion, as a summary.
-// Staff open just the criteria they want to change (Edit / Add answer), press Done, and
+// Staff open just the criteria they want to change (Edit answer), press Done, and
 // publish all their changes at once from the panel on the right, which lists every change
 // and the resulting level. The server checks and recalculates everything; nothing here is trusted.
 
@@ -152,9 +152,9 @@ export function AssessmentEditForm({
                       variant="outline"
                       size="sm"
                       onClick={() => startEditing(c)}
-                      aria-label={`${value.main ? "Edit" : "Add answer for"} ${c.name}`}
+                      aria-label={`Edit answer for ${c.name}`}
                     >
-                      {value.main ? "Edit" : "Add answer"}
+                      Edit answer
                     </Button>
                   </div>
                 )}
