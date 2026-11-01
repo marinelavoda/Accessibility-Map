@@ -1,6 +1,6 @@
 # Harta Accesibilității
 
-A mobile accessibility map for people with mobility disabilities in Chișinău, Moldova,
+A mobile accessibility map (an app and a public website) for people with mobility disabilities in Chișinău, Moldova,
 built with the NGO MOTIVAȚIE for a Minerva University capstone (Marinela Vodă, advisor
 Prof. Volkan). Users find places and see verified accessibility information; registered
 users submit assessments of existing places; MOTIVAȚIE reviewers verify every submission
@@ -22,7 +22,7 @@ The author is new to web development. Explain what you do and why, in plain word
 | Part | Technology |
 |---|---|
 | Mobile app (public) | React Native + Expo, TypeScript, MapLibre (`@maplibre/maplibre-react-native`), Romanian/English |
-| Review dashboard + backend | One Next.js app (App Router, TypeScript) on Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
+| Public website + review dashboard + backend | One Next.js app (App Router, TypeScript) on Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`): public pages at `/`, dashboard at `/dashboard`, API at `/api` |
 | API for the mobile app | Next.js route handlers under `/api/...` (no Hono, no server actions for mobile) |
 | Database | Cloudflare D1 (SQLite) with Drizzle ORM; migrations via drizzle-kit + wrangler |
 | Photos | Cloudflare R2, private bucket, short-lived signed URLs |
@@ -65,7 +65,7 @@ The author is new to web development. Explain what you do and why, in plain word
 
 ```
 mobile/          Expo app
-web/             Next.js app: dashboard pages + /api routes + server code
+web/             Next.js app: public website pages + dashboard pages + /api routes + server code
   src/db/        schema.ts, client, queries
   src/server/    requireRole, domain services, rules scoring, change logger, notifications
   drizzle/       migrations (generated; never edit an applied one)

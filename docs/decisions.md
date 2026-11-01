@@ -145,9 +145,9 @@ Add new decisions at the top of the relevant section with a date.
 | Maps | OpenStreetMap + MapLibre | Google Maps: terms restrict storing place data and showing it on non-Google maps; billing account needed |
 | Next.js caching | `cacheComponents` off (2026-10-30) | On by default in new Next.js apps, but it hangs requests on Workers with OpenNext |
 | Repo layout | One repo: `web/` (Next.js), `mobile/` (Expo, later), `docs/` (2026-10-30) | Separate repos (harder to keep docs and code in sync) |
-| Workers plan | Paid (~$5/month) likely needed | Free plan's 3 MiB Worker size limit is often too small for Next.js |
+| Workers plan | Free plan for now (2026-11-01: the app is ~2.4 MB of the 3 MB limit and fits the ~10 ms CPU limit); paid (~$5/month) once the website and API outgrow it | Paid from the start (not needed yet) |
 | Password hashing | PBKDF2-SHA256, 100,000 rounds, Web Crypto (2026-10-30) | Better Auth's default scrypt: far over the free plan's ~10 ms CPU per request. Round count is stored in each hash, so it can be raised on the paid plan |
-| Sign-in methods | Email + password and Google now; Apple with the mobile app (2026-10-30) | Apple now (needs a paid Apple developer account; only relevant for iOS) |
+| Sign-in methods | Email + password and Google now; Apple with the mobile app (2026-10-30). Google's code is ready but stays off until `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are set (2026-11-01) | Apple now (needs a paid Apple developer account; only relevant for iOS) |
 | Web sign-up | Open to anyone; new accounts are `user` and can't open the dashboard (2026-10-30) | Sign-in only (staff accounts would need another way to be created before the app exists) |
 | First admin | `npm run make-admin -- <email>` after signing up; afterwards roles are changed on the dashboard (2026-10-30) | Admin emails in a setting (a second place that decides roles) |
 | Dashboard language | English first, Romanian added once the screens settle (2026-10-30) | Both now (translation setup before the screens are stable) |
