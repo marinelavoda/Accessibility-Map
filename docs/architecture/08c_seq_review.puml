@@ -1,5 +1,6 @@
 @startuml 08c_seq_review
-' Sequence diagram 3 — Review and publish a submission (v0.4, 2026-10-30)
+' Sequence diagram 3 — Review and publish a submission (v0.5, 2026-11-01)
+' v0.5: note on admin "Edit accessibility" (same approval steps, no new diagram).
 ' Changes from v0.3: no lock while reviewing, only an "opened by" warning (decisions.md);
 ' the suggestion is recalculated in the browser with the same rules code; the decision
 ' batch starts with a guard so a double decision cancels the whole batch.
@@ -75,4 +76,11 @@ note over Svc, DB
   "Not yet rated" in the app.
 end note
 note over R2 : Photos of rejected submissions\nare deleted after 6 months\n(Cleanup job).
+note over Dash, DB
+  <b>Admin correction ("Edit accessibility")</b>
+  An admin can correct a published assessment directly.
+  It reuses the same approval steps (planAdminEdit → planApproval):
+  a new assessment with origin <i>admin_edit</i> becomes current,
+  published without review, logged in the same batch.
+end note
 @enduml

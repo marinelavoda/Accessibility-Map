@@ -244,7 +244,8 @@ places |o--o{ search
 
 note bottom of places
   <b>Search index</b> (separate, hand-written migration):
-  FTS5 table over name + other_names,
+  FTS5 table over name + other_names + address
+  (address added in migration 0002),
   ignores diacritics ("Chisinau" = "Chișinău").
 end note
 @enduml

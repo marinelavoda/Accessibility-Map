@@ -1,11 +1,13 @@
 @startuml 08a_seq_find_view
-' Sequence diagram 1 — Find a place and view its accessibility (v0.3, 2026-10-30)
+' Sequence diagram 1 — Find a place and view its accessibility (v0.4, 2026-11-01)
+' Changes from v0.3: the same flow runs on the public website (Next.js pages), which calls the
+' server code directly instead of /api; no markers for unrated places; shared links open the website.
 ' Stack: Expo app with MapLibre · Next.js backend (route handlers) · D1 · R2 · OpenStreetMap tiles
 !include _seq.iuml
 title 1 · Find a place and view its accessibility
 
 actor "Map user\n(no account needed)" as U
-participant "Mobile app" as App
+participant "Mobile app\nor website" as App
 box "Backend · Next.js on Cloudflare" #FAFAFA
   participant "API route\n+ requireRole()" as API
   database "D1" as DB
@@ -22,7 +24,7 @@ note right of API : public route:\nno sign-in needed
 API -> DB : all visible places:\nid, coordinates, category,\ncurrent level (or unrated),\nno-parking flag
 DB --> API : rows
 API --> App : place list
-App -> App : cache list, draw markers\n+ clusters (unrated hidden\nat city zoom)
+App -> App : cache list, draw colored\nmarkers + clusters for rated places\n(unrated: base-map labels only)
 
 == Search ==
 U -> App : type "spital"
@@ -45,6 +47,9 @@ App --> U : level, each criterion,\nphotos, last verified
 
 note over App, API
   Only approved data is ever returned.
+  The website runs the same steps, but its pages
+  call the server code directly instead of /api.
+  A shared place link opens the place on the website.
   A place with no published rating shows
   "Not yet rated" with an "Assess this place" button.
 end note

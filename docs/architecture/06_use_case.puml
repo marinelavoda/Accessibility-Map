@@ -1,5 +1,10 @@
 @startuml 06_use_case
-' Use case diagram — v0.4, 2026-10-30
+' Use case diagram — v0.6, 2026-11-01
+' Changes from v0.5: the public website (Next.js pages) is P0 and offers everything the
+' mobile app does, so the public box covers both; 1 to 3 photos per criterion.
+' Changes from v0.4: admins can correct a published assessment directly (published at once,
+' same steps as an approval); reviewers get an overview / to-do page and can search and
+' filter the places list (admins inherit both).
 ' Changes from v0.3: places come from OpenStreetMap; users only assess existing places
 ' (no new places from users); admins can still create a missing place.
 ' External systems (email, map tiles, Nominatim) drawn as boxes, not people.
@@ -28,7 +33,7 @@ skinparam rectangle {
   BackgroundColor<<system>> #EEF3FA
   BorderColor<<system>> #6F86A6
 }
-title Use cases (v0.4) — white = P0, light grey = P2
+title Use cases (v0.6) — white = P0, light grey = P2
 
 actor "Visitor\n(no account)" as Visitor
 actor "Registered user" as User
@@ -44,7 +49,7 @@ User -|> Visitor
 Reviewer -|> User
 Admin -|> Reviewer
 
-rectangle "Mobile app" {
+rectangle "Mobile app (Expo) and public website (Next.js)" {
   usecase "Browse map" as UC_Map
   usecase "Search places" as UC_Search
   usecase "Filter by type / level" as UC_Filter
@@ -57,13 +62,15 @@ rectangle "Mobile app" {
   usecase "Assess an existing place\n(some or all criteria)" as UC_Assess
   usecase "Submit update\n(changed criteria only)" as UC_Update
   usecase "Fill criteria form" as UC_Form
-  usecase "Attach photo\nper criterion" as UC_Photo
+  usecase "Attach 1–3 photos\nper criterion" as UC_Photo
   usecase "See own submissions\nand their status" as UC_Mine
   usecase "Get decision by email" as UC_Notif
   usecase "Delete account" as UC_Delete
 }
 
-rectangle "Review dashboard (web)" {
+rectangle "Review dashboard (web, /dashboard)" {
+  usecase "See overview / to-do\n(submissions waiting,\ncoverage, old ratings)" as UC_Overview
+  usecase "Search and filter places" as UC_Places
   usecase "Get notified of\nnew submissions" as UC_NewSub
   usecase "Review submission" as UC_Rev
   usecase "See suggested level\nand reviewer notes" as UC_Score
@@ -72,6 +79,7 @@ rectangle "Review dashboard (web)" {
 
   usecase "Add a missing place" as UC_Add
   usecase "Edit place" as UC_Edit
+  usecase "Correct published\naccessibility" as UC_Fix
   usecase "Hide / delete place" as UC_Hide
   usecase "List places by\nlast verified" as UC_Stale
   usecase "View change history" as UC_Hist
@@ -103,6 +111,8 @@ UC_Assess ..> UC_Notif : <<include>>
 UC_Update ..> UC_Notif : <<include>>
 
 ' Reviewer
+Reviewer --> UC_Overview
+Reviewer --> UC_Places
 Reviewer --> UC_NewSub
 Reviewer --> UC_Rev
 UC_Rev ..> UC_Score : <<include>>
@@ -112,12 +122,20 @@ UC_Correct ..> UC_Rev : <<extend>>
 ' Admin
 Admin --> UC_Add
 Admin --> UC_Edit
+Admin --> UC_Fix
 Admin --> UC_Hide
 Admin --> UC_Stale
 Admin --> UC_Hist
 Admin --> UC_Export
 Admin --> UC_Roles
 Admin --> UC_Demand
+
+note right of UC_Fix
+  Published at once, without review.
+  Same steps as an approval: merge with
+  the current assessment, publishing rule,
+  change log.
+end note
 
 ' External systems
 UC_Map --> Tiles

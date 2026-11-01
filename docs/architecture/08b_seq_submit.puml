@@ -1,10 +1,12 @@
 @startuml 08b_seq_submit
-' Sequence diagram 2 — Submit an assessment or update for an existing place (v0.3, 2026-10-30)
+' Sequence diagram 2 — Submit an assessment or update for an existing place (v0.4, 2026-11-01)
+' Changes from v0.3: the same flow runs on the public website (Next.js pages, server-side calls
+' instead of /api; photos uploaded from the device); 1 to 3 photos per criterion.
 !include _seq.iuml
 title 2 · Submit an assessment for an existing place
 
 actor "Registered user" as U
-participant "Mobile app" as App
+participant "Mobile app\nor website" as App
 box "Backend · Next.js on Cloudflare" #FAFAFA
   participant "API route\n+ requireRole()" as API
   participant "Rules scoring" as Score
@@ -23,9 +25,9 @@ DB --> API : rows
 API --> App : questionnaire
 U -> App : pick criteria, answer questions
 
-== Upload photos (one per criterion) ==
+== Upload photos (1 to 3 per criterion) ==
 loop for each criterion that exists at the place
-  U -> App : take or choose photo
+  U -> App : take or choose photo\n(website: upload from the device)
   App -> API : POST /api/photos/upload-url
   API -> API : requireRole(user)
   API --> App : signed upload link\n(private "pending" area)
@@ -41,7 +43,7 @@ API -> API : requireRole(user)\nvalidate answers + photos
 
 alt something is missing or invalid
   API --> App : 400: what to fix
-  App --> U : highlight the problem\n(draft kept on the phone)
+  App --> U : highlight the problem\n(draft kept)
 else valid
   API -> Score : answers
   Score --> API : suggested level\n+ explanation + reviewer notes
@@ -54,6 +56,8 @@ end
 
 note over API, DB
   Nothing the user sent is public yet.
+  On the website the same steps run through
+  server-side calls in the same app, not /api.
   The place keeps showing its current
   (verified) information until approval.
 end note

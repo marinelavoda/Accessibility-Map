@@ -136,6 +136,7 @@ Add new decisions at the top of the relevant section with a date.
 |---|---|---|
 | Mobile | React Native + Expo | Flutter (fewer maintainers know Dart), PWA (worse on phones) |
 | Dashboard + API | One Next.js app on Cloudflare Workers (OpenNext) | Separate Vite dashboard + Hono API (two projects to deploy and hand over) |
+| Public website | Next.js pages in the same app as the dashboard, calling the server code directly; the Expo app uses `/api` (2026-11-01) | Expo for web (one UI codebase with the app, but a second deployment, and the website couldn't share the dashboard's server code and sign-in as simply) |
 | API style | Next.js route handlers | Hono inside Next.js (extra tool; fine to add later if the API grows) |
 | Database | Cloudflare D1 (SQLite) + Drizzle | Supabase/Postgres (earlier plan; switched for cost and simplicity) |
 | Authorization | `requireRole()` helper called in every route/action | Row-level security (not available in D1); Next.js middleware alone (can be bypassed) |
@@ -163,8 +164,6 @@ Add new decisions at the top of the relevant section with a date.
 - [x] Compare our Better Auth tables with Better Auth 1.7's core schema (checked by hand 2026-10-30: same columns).
 - [ ] OSM refresh script: when an admin has edited an OSM place's name or location, should the import
       keep the admin's edit or take OpenStreetMap's? (Check the change log for admin edits before overwriting.)
-- [ ] How to build the public website (2026-11-01): Expo for web from the same codebase as the mobile app, or
-      pages in the Next.js app next to the dashboard. Decide before building the map.
 - [ ] Email service (for password reset, email verification and rejection emails) — not chosen yet.
 
 ## PRD sections known to be outdated
