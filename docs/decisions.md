@@ -1,6 +1,6 @@
 # Decisions log
 
-Last updated: 2026-10-31. Where this file and the PRD (Google Doc) disagree, this file wins.
+Last updated: 2026-11-01. Where this file and the PRD (Google Doc) disagree, this file wins.
 Add new decisions at the top of the relevant section with a date.
 
 ## Scope
@@ -162,5 +162,13 @@ Add new decisions at the top of the relevant section with a date.
 
 ## PRD sections known to be outdated
 
-R5 (Google Maps → MapLibre + OSM), R6 (unrated toggle dropped), R16 (no new places from users),
-R29 (backend is Next.js + D1 + R2 + Better Auth), dashboard "React + Vite" mentions.
+Updated in the PRD on 2026-11-01 to match this file: R5 (MapLibre + OSM), R6 (no grey markers, toggle dropped),
+R7 (search by other names and address), R16 (assess existing places only), R17 (1 to 3 photos), R25 (admin
+corrections; delete only admin-added places without assessments, otherwise hide), R27 (24-month count on the
+overview), R29 (one Next.js app), R32 (three roles), and the Design Doc tab (photos; warning instead of a claim/lock).
+
+Still open in the PRD:
+- R11 "May be outdated after a set period": the period isn't decided (the dashboard uses 24 months for old ratings).
+- R35, R51, R52 (community reviews): not in the database or in this file; still planned or dropped?
+- R14 share message includes a Google Maps link: not decided again since the switch to OpenStreetMap.
+- The diagram pictures pasted in the Design Doc tab are older versions.
