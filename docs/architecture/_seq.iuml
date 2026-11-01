@@ -4,7 +4,12 @@ skinparam defaultFontSize 12
 skinparam shadowing false
 skinparam ArrowColor #333333
 skinparam SequenceMessageAlignment center
-skinparam ParticipantPadding 18
+' Space around each participant (newer PlantUML ignores skinparam ParticipantPadding).
+<style>
+participant {
+  Padding 18
+}
+</style>
 skinparam BoxPadding 12
 skinparam sequence {
   LifeLineBorderColor #9A9A9A
