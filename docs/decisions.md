@@ -7,6 +7,11 @@ Add new decisions at the top of the relevant section with a date.
 
 - **Languages:** Romanian and English only. Russian dropped (non-goal); translations are stored
   as `{ro, en}` JSON so another language can be added later.
+- **Public website, P0 (2026-11-01):** the product is a mobile app *and* a public website with the same
+  features (map, search, filters, place pages, sign-in, submitting assessments with photos). The website and the
+  review dashboard share one address: public pages for everyone, `/dashboard` for reviewers and admins only.
+  Shared place links are website links (they open the app instead once installed, P1). The old P2 item R56 now
+  covers only a mobile version of the dashboard. Today's home page (a list of places) is the first step towards it.
 - **Temporary barriers** (broken elevator, construction): dropped (non-goal). Updates are for
   lasting changes only.
 - **Places come from OpenStreetMap.** Users never add places; they assess existing ones.
@@ -158,6 +163,8 @@ Add new decisions at the top of the relevant section with a date.
 - [x] Compare our Better Auth tables with Better Auth 1.7's core schema (checked by hand 2026-10-30: same columns).
 - [ ] OSM refresh script: when an admin has edited an OSM place's name or location, should the import
       keep the admin's edit or take OpenStreetMap's? (Check the change log for admin edits before overwriting.)
+- [ ] How to build the public website (2026-11-01): Expo for web from the same codebase as the mobile app, or
+      pages in the Next.js app next to the dashboard. Decide before building the map.
 - [ ] Email service (for password reset, email verification and rejection emails) — not chosen yet.
 
 ## PRD sections known to be outdated
@@ -166,6 +173,7 @@ Updated in the PRD on 2026-11-01 to match this file: R5 (MapLibre + OSM), R6 (no
 R7 (search by other names and address), R16 (assess existing places only), R17 (1 to 3 photos), R25 (admin
 corrections; delete only admin-added places without assessments, otherwise hide), R27 (24-month count on the
 overview), R29 (one Next.js app), R32 (three roles), and the Design Doc tab (photos; warning instead of a claim/lock).
+Also on 2026-11-01, the public website became P0: description, R1, R4, R14, R17, R21, R44 and R56 updated.
 
 Still open in the PRD:
 - R11 "May be outdated after a set period": the period isn't decided (the dashboard uses 24 months for old ratings).
